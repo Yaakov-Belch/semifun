@@ -12,6 +12,7 @@ from semifun.plugins.testing import create_registry_from_paths, feature_map_from
 from semifun.cli.dispatch import (
     cli_dispatch_engine,
     sync_cli_dispatch_engine,
+    semifun_cli,
 )
 
 
@@ -24,22 +25,24 @@ def _make_cli_package(tmp_path):
         "#::cli:greet\n"
         "def greet(name='world', times: int = 1):\n"
         "    '''Greet someone.'''\n"
-        "    return '\\n'.join(f'Hello, {name}!' for _ in range(times))\n"
+        "    for _ in range(times):\n"
+        "        print(f'Hello, {name}!')\n"
         "\n"
         "#::cli:add\n"
         "def add(a: int = 0, b: int = 0):\n"
         "    '''Add two numbers.'''\n"
-        "    return a + b\n"
+        "    print(a + b)\n"
         "\n"
         "#::cli:mixed\n"
         "def mixed(greeting, name, times: int = 1):\n"
         "    '''Greet with positional and keyword args.'''\n"
-        "    return '\\n'.join(f'{greeting}, {name}!' for _ in range(times))\n"
+        "    for _ in range(times):\n"
+        "        print(f'{greeting}, {name}!')\n"
         "\n"
         "#::cli:variadic\n"
         "def variadic(*numbers: int):\n"
         "    '''Sum numbers.'''\n"
-        "    return sum(numbers)\n"
+        "    print(sum(numbers))\n"
         "\n"
         "from semifun.cli.decorator import sync_function_owns_async_loop\n"
         "\n"
@@ -47,7 +50,7 @@ def _make_cli_package(tmp_path):
         "@sync_function_owns_async_loop\n"
         "def sync_server(host='localhost', port: int = 8080):\n"
         "    '''A sync function that would own the event loop.'''\n"
-        "    return f'{host}:{port}'\n"
+        "    print(f'{host}:{port}')\n"
     )
     return pkg
 
@@ -62,12 +65,7 @@ def _scanned_cli_map(tmp_path):
 
 
 async def _dispatch(tmp_path, argv, capsys):
-    """Run argv through the real async engine; return what it printed.
-
-    Both feature-type arguments are callables, which the registry returns
-    unchanged — see [[feature_map:testing-seam]].  Nothing here re-implements
-    the dispatcher: a broken engine fails these tests.
-    """
+    """Run argv through the real async engine; return what it printed."""
     await cli_dispatch_engine(
         cli_feature_type=_scanned_cli_map(tmp_path),
         injector_feature_type=_noop_injectors_map,
@@ -126,7 +124,7 @@ def test_sync_server_dispatch(tmp_path, capsys):
     assert capsys.readouterr().out == '0.0.0.0:9090\n'
 
 
-# --- The two engines (see [[:cli-dispatch-engine-does-not-own-the-loop]]) ---
+# --- The two engines ---
 
 @dataclass
 class _Ctx:
@@ -152,35 +150,29 @@ class _FakeCliMap:
         return list(self._functions.items())
 
 
-def _noop_injectors_map(name, default):
+def _noop_injectors_map(feature, default):
     """No injectors registered: every Inject[T] must come from seed_data."""
     return default
 
 
 @pytest.fixture
 def cli_map():
-    """A pre-built feature map of sample commands.
-
-    Passed to the engines in place of `cli_feature_type` /
-    `injector_feature_type` — `get_cached_feature_map` returns a callable
-    argument unchanged, so no patching is needed.
-    See [[feature_map:testing-seam]].
-    """
+    """A pre-built feature map of sample commands."""
     from semifun.di.model import Inject
     from semifun.cli.decorator import sync_function_owns_async_loop
 
     async def async_greet(name):
         """Greet someone, asynchronously."""
-        return f'Hello, {name}!'
+        print(f'Hello, {name}!')
 
     @sync_function_owns_async_loop
     def loop_owning(host, port: int):
         """A sync command that starts its own loop."""
-        return f'{host}:{port}'
+        print(f'{host}:{port}')
 
     async def needs_context(ctx: Inject[_Ctx], suffix):
         """A command whose context arrives through seed_data."""
-        return f'{ctx.name}{suffix}'
+        print(f'{ctx.name}{suffix}')
 
     return _FakeCliMap({
         'agreet': async_greet,
@@ -261,20 +253,96 @@ def test_sync_engine_passes_seed_data_to_di(cli_map, capsys):
     assert capsys.readouterr().out == 'xctx?\n'
 
 
-# --- The documented entry point (see [[cli-dispatch:entry-point]]) ---
+# --- semifun_cli entry point ---
+
+def test_semifun_cli_entry_point(tmp_path, capsys, monkeypatch):
+    """semifun_cli is a zero-argument entry point that reads sys.argv."""
+    assert inspect.signature(semifun_cli).parameters == {}, (
+        'a console-script target is invoked with no arguments'
+    )
+
+
+# --- post_cli_hook ---
+
+async def test_post_cli_hook_runs_after_command(capsys):
+    """A post_cli_hook registered in the injector map runs after the command."""
+    hook_called = []
+
+    async def my_command():
+        """A simple command."""
+        print('command ran')
+
+    async def my_hook():
+        hook_called.append(True)
+        print('hook ran')
+
+    def injectors_with_hook(feature, default):
+        if feature == 'post_cli_hook':
+            return my_hook
+        return default
+
+    await cli_dispatch_engine(
+        cli_feature_type=_FakeCliMap({'cmd': my_command}),
+        injector_feature_type=injectors_with_hook,
+        argv=['cmd'],
+        seed_data={},
+    )
+    out = capsys.readouterr().out
+    assert 'command ran' in out
+    assert 'hook ran' in out
+    assert hook_called
+
+
+async def test_no_post_cli_hook_is_fine(capsys):
+    """Without a post_cli_hook, the engine runs the command and stops."""
+    async def my_command():
+        """A simple command."""
+        print('just the command')
+
+    await cli_dispatch_engine(
+        cli_feature_type=_FakeCliMap({'cmd': my_command}),
+        injector_feature_type=_noop_injectors_map,
+        argv=['cmd'],
+        seed_data={},
+    )
+    assert capsys.readouterr().out == 'just the command\n'
+
+
+def test_sync_post_cli_hook_runs_after_command(capsys):
+    """post_cli_hook works with the sync engine too."""
+    hook_called = []
+
+    async def my_command():
+        """A simple command."""
+        print('command ran')
+
+    async def my_hook():
+        hook_called.append(True)
+        print('hook ran')
+
+    def injectors_with_hook(feature, default):
+        if feature == 'post_cli_hook':
+            return my_hook
+        return default
+
+    sync_cli_dispatch_engine(
+        cli_feature_type=_FakeCliMap({'cmd': my_command}),
+        injector_feature_type=injectors_with_hook,
+        argv=['cmd'],
+        seed_data={},
+    )
+    out = capsys.readouterr().out
+    assert 'command ran' in out
+    assert 'hook ran' in out
+    assert hook_called
+
+
+# --- documented entry point shape ---
 
 def test_documented_entry_point_shape(tmp_path, capsys, monkeypatch):
-    """The console-script entry point works exactly as `docu/` specifies it.
-
-    A `[project.scripts]` target is called with no arguments, so the entry
-    point takes none and reads `sys.argv` itself.  This is the one place
-    `asyncio.run()` belongs: the loop starts at the process boundary and the
-    engine runs inside it.
-    """
+    """The console-script entry point works exactly as documented."""
     cli_map = _scanned_cli_map(tmp_path)
 
-    # Verbatim shape of [[cli-dispatch:entry-point]], with the two feature
-    # types supplied through the testing seam instead of installed packages.
     def cli_dispatch() -> None:
         asyncio.run(cli_dispatch_engine(
             cli_feature_type=cli_map,

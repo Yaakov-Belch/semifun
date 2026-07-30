@@ -21,6 +21,13 @@ from semifun.di.registry_integration import get_injector
 from .argv import split_argv
 from .cast import cast_args
 
+def semifun_cli():
+    asyncio.run(cli_dispatch_engine(
+        cli_feature_type='cli',
+        injector_feature_type='cli_inject',
+        argv=sys.argv[1:],
+        seed_data={},
+    ))
 
 async def cli_dispatch_engine(
     cli_feature_type: str,
@@ -46,14 +53,14 @@ async def cli_dispatch_engine(
 
     di = get_injector(injector_feature_type).with_seed_data(seed_data)
 
-    result = await di.async_call_with_args(
+    await di.async_call_with_args(
         fn=fn,
         args=cast_positional,
         kwargs=cast_kwargs,
     )
 
-    if result is not None:
-        print(result)
+    if post_cli_hook := di.injectors_map(feature='post_cli_hook', default=None):
+        await di.async_call_with_args(fn=post_cli_hook, args=(), kwargs={})
 
 
 def sync_cli_dispatch_engine(
@@ -75,22 +82,24 @@ def sync_cli_dispatch_engine(
     fn, cast_positional, cast_kwargs = resolved
 
     di = get_injector(injector_feature_type).with_seed_data(seed_data)
+    post_cli_hook = di.injectors_map(feature='post_cli_hook', default=None)
 
     if getattr(fn, 'sync_function_owns_async_loop', False):
-        result = di.sync_call_with_args(
+        di.sync_call_with_args(
             fn=fn,
             args=cast_positional,
             kwargs=cast_kwargs,
         )
+        if post_cli_hook:
+            di.sync_call_with_args(fn=post_cli_hook, args=(), kwargs={})
     else:
-        result = asyncio.run(di.async_call_with_args(
+        asyncio.run(di.async_call_with_args(
             fn=fn,
             args=cast_positional,
             kwargs=cast_kwargs,
         ))
-
-    if result is not None:
-        print(result)
+        if post_cli_hook:
+            asyncio.run(di.async_call_with_args(fn=post_cli_hook, args=(), kwargs={}))
 
 
 def _resolve(cli_feature_type: str, argv: list[str]):
