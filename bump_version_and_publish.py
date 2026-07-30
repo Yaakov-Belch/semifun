@@ -1,11 +1,12 @@
-"""Bump the version across all packages in the repo.
+"""Bump the version across all packages, commit, tag, and push.
 
 Usage:
-    python bump_version.py 0.2.0
+    python bump_version_and_publish.py 0.2.23
 """
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -46,6 +47,14 @@ def update_package_json(path: Path, new: str) -> str:
     return old
 
 
+def run(cmd):
+    print(f"  $ {cmd}")
+    result = subprocess.run(cmd, shell=True, cwd=REPO_ROOT)
+    if result.returncode != 0:
+        print(f"Error: command failed with exit code {result.returncode}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     if len(sys.argv) != 2:
         print(f"Usage: python {sys.argv[0]} <version>", file=sys.stderr)
@@ -64,12 +73,20 @@ def main():
         "tmsgpack-js/package.json": update_package_json,
     }
 
+    print("Updating versions:")
     for label, path in TARGETS.items():
         old = updaters[label](path, new_version)
         if old == new_version:
             print(f"  {label}: already {new_version}")
         else:
             print(f"  {label}: {old} -> {new_version}")
+
+    print("\nCommit, tag, and push:")
+    run(f'git commit -a -m "Bump version to {new_version}"')
+    run(f"git tag v{new_version}")
+    run("git push && git push --tags")
+
+    print(f"\nDone. CI will publish v{new_version} to PyPI and npm.")
 
 
 if __name__ == "__main__":

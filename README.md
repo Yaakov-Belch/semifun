@@ -20,7 +20,7 @@ JavaScript tmsgpack packages carry the same version.
 To bump all packages at once:
 
 ```bash
-python bump_version.py 0.2.0
+python bump_version_and_publish.py 0.2.0
 ```
 
 This updates `VERSION`, both `pyproject.toml` files, and `tmsgpack-js/package.json`.
@@ -33,13 +33,10 @@ The CI workflow (`.github/workflows/publish.yml`) publishes all three packages
 when you push a `v*` tag. It uses trusted publishing (OIDC) through a GitHub
 `release` environment -- no API keys in the repo.
 
-Steps:
+The script commits, tags, and pushes in one step:
 
 ```bash
-python bump_version.py 0.2.0
-git commit -a -m "Bump version to 0.2.0"
-git tag v0.2.0
-git push && git push --tags
+python bump_version_and_publish.py 0.2.0
 ```
 
 This triggers three parallel CI jobs:
