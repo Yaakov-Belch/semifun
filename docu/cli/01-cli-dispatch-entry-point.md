@@ -1,3 +1,23 @@
+```toml
+[project.scripts]
+my-app = "semifun.cli.dispatch:semifun_cli"
+```
+
+#::cli_inject:ReqReply
+@dataclass
+class ReqReply:
+    ...
+
+#::cli:foo
+def foo(..., *, reply: Inject[ReqReply]):
+    ...
+    reply.error(...)
+    ...
+
+#::cli_inject:post_cli_hook
+def post_cli_hook(reply: Inject[ReqReply]):
+    print(reply.as_string())
+
 [[cli-dispatch:entry-point]]
 # Using the engine as your CLI dispatcher: `asyncio.run()` at the entry point only
 
@@ -16,9 +36,10 @@ the process boundary, by the application.
 import asyncio
 import sys
 
-from semifun_cli_dispatch.dispatch import cli_dispatch_engine
+from semifun.cli.dispatch import cli_dispatch_engine
 
 
+# Show the actual code!
 def cli_dispatch() -> None:
     """Entry point: start the event loop and hand over to the engine."""
     asyncio.run(cli_dispatch_engine(

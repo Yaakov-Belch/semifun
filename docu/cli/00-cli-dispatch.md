@@ -7,7 +7,6 @@
 * keyword arguments: `key=value`; all others positional
 * default arguments: supported
 * dependency injection with `Inject[T]`
-* return value: printed unless `None`
 * `--help`: signatures and docstrings
 
 
@@ -15,19 +14,19 @@
 #::cli:greet
 def greet(name='world', times: int = 1):
     """Greet someone repeatedly."""
-    return '\n'.join(f'Hello, {name}!' for _ in range(times))
+    print('\n'.join(f'Hello, {name}!' for _ in range(times)))
 
 #::cli:fetch
 async def fetch(url, timeout: float = 5.0):
     """Fetch a URL and return its body."""
-    return await http_get(url, timeout=timeout)
+    print(await http_get(url, timeout=timeout))
 
 #::cli:lookup
 async def lookup(key, limit: int = 10, *, dbh: Inject[DbHandle]):
     """Look a key up in the database."""
     # `dbh` does not come from argv.
     # It must be provided as DI seed_data by the dispatcher or through an injector.
-    return await dbh.query(key, limit=limit)
+    print(await dbh.query(key, limit=limit))
 ```
 
 ```
