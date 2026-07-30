@@ -1,0 +1,72 @@
+# BaseDecodeBuffer is correct only on little-endian architectures.
+# Most modern architectures are little-endian.
+# See SafeDecodeBuffer and DecodeBuffer.
+
+cdef class BaseDecodeBuffer:
+    cdef bytes msg
+    cdef int start
+    cdef int end
+
+    def __init__(self, bytes msg, int start, int end):
+        self.msg   = msg
+        self.start = start
+        self.end   = end
+
+    cdef const char* _pull_bytes(self, int n) except NULL:
+        """Internal method that returns pointer to n bytes and advances start"""
+        cdef int new_start = self.start + n
+        if new_start > self.end:
+            raise TMsgpackError('Not enough input data')
+        cdef const char* result = <const char*>self.msg + self.start
+        self.start = new_start
+        return result
+
+    # Bytes and strings
+    cpdef bytes rd_bytes(self, int n):
+        """Takes n bytes and returns them as bytes object"""
+        cdef int old_start = self.start
+        self._pull_bytes(n)  # Advances self.start and validates bounds
+        return self.msg[old_start:self.start]
+
+    cpdef str rd_str(self, int n):
+        return self.rd_bytes(n).decode('utf-8')
+
+    # Signed integers
+    cpdef int rd_int1(self):
+        cdef const char* data = self._pull_bytes(sizeof(int8_t))
+        return (<int8_t*>data)[0]
+
+    cpdef int rd_int2(self):
+        cdef const char* data = self._pull_bytes(sizeof(int16_t))
+        return (<int16_t*>data)[0]
+
+    cpdef int rd_int4(self):
+        cdef const char* data = self._pull_bytes(sizeof(int32_t))
+        return (<int32_t*>data)[0]
+
+    cpdef long rd_int8(self):
+        cdef const char* data = self._pull_bytes(sizeof(int64_t))
+        return (<int64_t*>data)[0]
+
+    # Unsigned integers
+    cpdef int rd_uint1(self):
+        cdef const char* data = self._pull_bytes(sizeof(uint8_t))
+        return (<uint8_t*>data)[0]
+
+    cpdef int rd_uint2(self):
+        cdef const char* data = self._pull_bytes(sizeof(uint16_t))
+        return (<uint16_t*>data)[0]
+
+    cpdef long rd_uint4(self):
+        cdef const char* data = self._pull_bytes(sizeof(uint32_t))
+        return (<uint32_t*>data)[0]
+
+    cpdef long rd_uint8(self):
+        cdef const char* data = self._pull_bytes(sizeof(uint64_t))
+        return (<uint64_t*>data)[0]
+
+    # Float
+    cpdef float64_t rd_float8(self):
+        cdef const char* data = self._pull_bytes(sizeof(float64_t))
+        return (<float64_t*>data)[0]
+

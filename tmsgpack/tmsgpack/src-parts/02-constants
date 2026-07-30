@@ -1,0 +1,53 @@
+# Integer limits
+cdef int64_t i1_max = 2**7
+cdef int64_t i2_max = 2**15
+cdef int64_t i4_max = 2**31
+
+cdef uint64_t ui1_max = 2**8
+cdef uint64_t ui2_max = 2**16
+
+# Opcode constants
+cdef uint8_t FixInt2 = 129
+cdef uint8_t FixInt4 = 130
+cdef uint8_t FixInt8 = 131
+
+cdef uint8_t FixFloat8 = 132
+
+cdef uint8_t FixStr0 = 133
+
+cdef uint8_t VarStr1 = 149
+cdef uint8_t VarStr2 = 150
+cdef uint8_t VarStr8 = 151
+
+cdef uint8_t FixBytes0 = 152
+cdef uint8_t FixBytes1 = 153
+cdef uint8_t FixBytes2 = 154
+cdef uint8_t FixBytes4 = 155
+cdef uint8_t FixBytes8 = 156
+cdef uint8_t FixBytes16 = 157
+cdef uint8_t FixBytes20 = 158
+cdef uint8_t FixBytes32 = 159
+
+cdef uint8_t VarBytes1 = 160
+cdef uint8_t VarBytes2 = 161
+cdef uint8_t VarBytes8 = 162
+
+cdef uint8_t FixTuple0 = 163
+
+cdef uint8_t VarTuple1 = 180
+cdef uint8_t VarTuple2 = 181
+cdef uint8_t VarTuple8 = 182
+
+cdef uint8_t ConstValStart = 183
+cdef uint8_t ConstValTrue = 183
+cdef uint8_t ConstValFalse = 184
+cdef uint8_t ConstValNone = 185
+
+cdef uint8_t NotUsed = 186
+cdef uint8_t ConstNegInt = 192
+
+cdef int64_t min_ConstNegInt = ConstNegInt - ui1_max  # This is -64
+
+# For Python interop, also define the type
+NoneType = type(None)
+

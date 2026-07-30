@@ -1,0 +1,33 @@
+cdef class SafeEncodeBuffer(BaseEncodeBuffer):
+    """BaseEncodeBuffer that always encodes to little-endian regardless of platform"""
+
+    # Signed integers - override to use struct.pack
+    cpdef BaseEncodeBuffer wr_int1(self, int value):
+        return self.wr_bytes(struct.pack('<b', value))
+
+    cpdef BaseEncodeBuffer wr_int2(self, int value):
+        return self.wr_bytes(struct.pack('<h', value))
+
+    cpdef BaseEncodeBuffer wr_int4(self, int value):
+        return self.wr_bytes(struct.pack('<i', value))
+
+    cpdef BaseEncodeBuffer wr_int8(self, long value):
+        return self.wr_bytes(struct.pack('<q', value))
+
+    # Unsigned integers
+    cpdef BaseEncodeBuffer wr_uint1(self, int value):
+        return self.wr_bytes(struct.pack('<B', value))
+
+    cpdef BaseEncodeBuffer wr_uint2(self, int value):
+        return self.wr_bytes(struct.pack('<H', value))
+
+    cpdef BaseEncodeBuffer wr_uint4(self, int value):
+        return self.wr_bytes(struct.pack('<I', value))
+
+    cpdef BaseEncodeBuffer wr_uint8(self, long value):
+        return self.wr_bytes(struct.pack('<Q', value))
+
+    # Float
+    cpdef BaseEncodeBuffer wr_float8(self, float64_t value):
+        return self.wr_bytes(struct.pack('<d', value))
+

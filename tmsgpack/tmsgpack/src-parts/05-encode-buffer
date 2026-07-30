@@ -1,0 +1,66 @@
+# BaseEncodeBuffer is correct only on little-endian architectures.
+# Most modern architectures are little-endian.
+# See SafeEncodeBuffer and EncodeBuffer.
+
+cdef class BaseEncodeBuffer:
+    cdef bytearray barray
+
+    def __init__(self):
+        self.barray = bytearray()
+
+    cdef BaseEncodeBuffer _add_bytes(self, const char* data, size_t length):
+        """Internal method that extends barray with raw bytes"""
+        self.barray.extend(data[:length])
+        return self
+
+    # Bytes and strings
+    cpdef BaseEncodeBuffer wr_bytes(self, bytes value):
+        """Takes length from the value argument"""
+        return self._add_bytes(value, len(value))
+
+    cpdef BaseEncodeBuffer wr_str(self, str value):
+        cdef bytes encoded = value.encode('utf-8')
+        return self._add_bytes(encoded, len(encoded))
+
+    # Signed integers
+    cpdef BaseEncodeBuffer wr_int1(self, int value):
+        cdef int8_t val = value
+        return self._add_bytes(<char*>&val, sizeof(int8_t))
+
+    cpdef BaseEncodeBuffer wr_int2(self, int value):
+        cdef int16_t val = value
+        return self._add_bytes(<char*>&val, sizeof(int16_t))
+
+    cpdef BaseEncodeBuffer wr_int4(self, int value):
+        cdef int32_t val = value
+        return self._add_bytes(<char*>&val, sizeof(int32_t))
+
+    cpdef BaseEncodeBuffer wr_int8(self, long value):
+        cdef int64_t val = value
+        return self._add_bytes(<char*>&val, sizeof(int64_t))
+
+    # Unsigned integers
+    cpdef BaseEncodeBuffer wr_uint1(self, int value):
+        cdef uint8_t val = value
+        return self._add_bytes(<char*>&val, sizeof(uint8_t))
+
+    cpdef BaseEncodeBuffer wr_uint2(self, int value):
+        cdef uint16_t val = value
+        return self._add_bytes(<char*>&val, sizeof(uint16_t))
+
+    cpdef BaseEncodeBuffer wr_uint4(self, int value):
+        cdef uint32_t val = value
+        return self._add_bytes(<char*>&val, sizeof(uint32_t))
+
+    cpdef BaseEncodeBuffer wr_uint8(self, long value):
+        cdef uint64_t val = value
+        return self._add_bytes(<char*>&val, sizeof(uint64_t))
+
+    # Float
+    cpdef BaseEncodeBuffer wr_float8(self, float64_t value):
+        return self._add_bytes(<char*>&value, sizeof(float64_t))
+
+    # Get the result.
+    cpdef bytes as_bytes(self):
+        return bytes(self.barray)
+

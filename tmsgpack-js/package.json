@@ -1,0 +1,33 @@
+{
+  "name": "tmsgpack",
+  "version": "0.1.0",
+  "description": "Typed MessagePack serializer (inspired by but different from msgpack)",
+  "author": "Yaakov Belch <yaakov.belch@gmail.com>",
+  "homepage": "https://github.com/Yaakov-Belch/yb-tools",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yaakov-Belch/yb-tools.git",
+    "directory": "tmsgpack-js"
+  },
+  "bugs": {
+    "url": "https://github.com/Yaakov-Belch/yb-tools/issues"
+  },
+  "keywords": [
+    "tmsgpack",
+    "serialization",
+    "msgpack"
+  ],
+  "license": "ISC",
+  "main": "./index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "engines": {
+    "node": ">= 18"
+  },
+  "files": [
+    "index.js",
+    "src/"
+  ]
+}

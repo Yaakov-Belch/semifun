@@ -1,0 +1,153 @@
+# We may want to optimize codec access in the future:
+ctypedef object TMsgpackCodec
+
+cdef class EncodeCtx:
+
+    # Warning: This object is mutable and shared.
+    # The self.value changes whenever new values are written.
+    # Copy early and use the copy.
+
+    cdef readonly TMsgpackCodec codec
+    cdef BaseEncodeBuffer       ebuf
+    cdef readonly object        value
+    cdef bint                   _used
+    cdef readonly bint          sort_keys
+
+    def __cinit__(self, TMsgpackCodec codec, BaseEncodeBuffer ebuf):
+        self.codec     = codec
+        self.ebuf      = ebuf
+        self.value     = None
+        self._used     = True    # Set to False directly before use.
+        self.sort_keys = codec.sort_keys
+
+    cdef _v(self, value):
+        self.value = value
+        self._used = False
+        return self
+
+    cdef _mark_use(self, bint expect_used):
+        if expect_used is not self._used:
+            if expect_used: raise TMsgpackError('ectx was not used.')
+            else:           raise TMsgpackError('ectx used twice.')
+        self._used = True
+        if expect_used: self.value = None
+
+    cpdef put_str(self, object _type, str value):
+        self.put_bytes(_type, value.encode('utf-8'))
+
+    cpdef put_bytes(self, object _type, object value):
+        cdef BaseEncodeBuffer ebuf = self.ebuf
+        cdef uint64_t         _len
+        self._mark_use(False)
+        if type(value) is not bytes: raise TMsgpackError(f'not bytes: {value}')
+
+        bytes_val = <bytes>value
+        _len = <uint64_t>len(bytes_val)
+
+        if   _len ==  0:     ebuf.wr_uint1(FixBytes0)
+        elif _len ==  1:     ebuf.wr_uint1(FixBytes1)
+        elif _len ==  2:     ebuf.wr_uint1(FixBytes2)
+        elif _len ==  4:     ebuf.wr_uint1(FixBytes4)
+        elif _len ==  8:     ebuf.wr_uint1(FixBytes8)
+        elif _len == 16:     ebuf.wr_uint1(FixBytes16)
+        elif _len == 20:     ebuf.wr_uint1(FixBytes20)
+        elif _len == 32:     ebuf.wr_uint1(FixBytes32)
+        elif _len < ui1_max: ebuf.wr_uint1(VarBytes1).wr_uint1(<uint8_t>_len)
+        elif _len < ui2_max: ebuf.wr_uint1(VarBytes2).wr_uint2(<uint16_t>_len)
+        else:                ebuf.wr_uint1(VarBytes8).wr_uint8(<uint64_t>_len)
+
+        ectx_put_value(self, _type)
+        ebuf.wr_bytes(bytes_val)
+
+    cpdef put_sequence(self, object _type, object value):
+        cdef uint64_t _len = <uint64_t>len(value)
+        self._mark_use(False)
+
+        _tuple_header(self.ebuf, _len)
+        ectx_put_value(self, _type)
+
+        for v in value: ectx_put_value(self, v)
+
+    cpdef put_dict(self, object _type, object value, bint sort=False):
+        cdef object   pairs = value.items()
+        cdef uint64_t _len  = <uint64_t>(2 * len(pairs))
+        if sort: pairs = sorted(pairs)
+
+        self._mark_use(False)
+        _tuple_header(self.ebuf, _len)
+        ectx_put_value(self, _type)
+
+        for k, v in pairs:
+            ectx_put_value(self, k)
+            ectx_put_value(self, v)
+
+    cpdef put_value(self, object value):
+        ectx_put_value(self, value)
+
+cdef bint _tuple_header(BaseEncodeBuffer ebuf, uint64_t _len):
+    if   _len < 17:      ebuf.wr_uint1(<uint8_t>(FixTuple0 + _len))
+    elif _len < ui1_max: ebuf.wr_uint1(VarTuple1).wr_uint1(<uint8_t>_len)
+    elif _len < ui2_max: ebuf.wr_uint1(VarTuple2).wr_uint2(<uint16_t>_len)
+    else:                ebuf.wr_uint1(VarTuple8).wr_uint8(<uint64_t>_len)
+
+cpdef BaseEncodeBuffer ebuf_put_value(
+    TMsgpackCodec codec, BaseEncodeBuffer ebuf, object value
+):
+    """Encode value to a msg and put it into ebuf."""
+    return ectx_put_value(EncodeCtx(codec, ebuf), value)
+
+cdef ectx_put_value(EncodeCtx ectx, object value):
+    cdef TMsgpackCodec    codec = ectx.codec
+    cdef BaseEncodeBuffer ebuf  = ectx.ebuf
+    cdef int64_t int_val
+    cdef bytes str_bytes
+    cdef uint64_t _len
+    cdef bint bool_val
+
+    cdef object t = type(value)
+
+    if t is int:
+        # Cast to C int64_t for efficient comparisons and arithmetic
+        int_val = PyLong_AsLongLong(value)
+
+        if min_ConstNegInt <= int_val < 0:
+            return ebuf.wr_uint1(<uint8_t>(int_val + ui1_max))
+        if 0 <= int_val < FixInt2:
+            return ebuf.wr_uint1(<uint8_t>int_val)
+
+        if -i2_max <= int_val < i2_max:
+            return ebuf.wr_uint1(FixInt2).wr_int2(<int16_t>int_val)
+        if -i4_max <= int_val < i4_max:
+            return ebuf.wr_uint1(FixInt4).wr_int4(<int32_t>int_val)
+        else:
+            return ebuf.wr_uint1(FixInt8).wr_int8(<int64_t>int_val)
+
+    if t is float:
+        return ebuf.wr_uint1(FixFloat8).wr_float8(<float64_t>value)
+
+    if t is str:
+        str_bytes = (<str>value).encode('utf8')
+        _len = <uint64_t>len(str_bytes)
+
+        # Str length header -- followed by string characters.
+        if   _len < 16:      ebuf.wr_uint1(<uint8_t>(FixStr0 + _len))
+        elif _len < ui1_max: ebuf.wr_uint1(VarStr1).wr_uint1(<uint8_t>_len)
+        elif _len < ui2_max: ebuf.wr_uint1(VarStr2).wr_uint2(<uint16_t>_len)
+        else:                ebuf.wr_uint1(VarStr8).wr_uint8(<uint64_t>_len)
+
+        return ebuf.wr_bytes(str_bytes)
+
+    if t is bool:
+        bool_val = <bint>value
+        if bool_val is True:  return ebuf.wr_uint1(ConstValTrue)
+        if bool_val is False: return ebuf.wr_uint1(ConstValFalse)
+        raise TMsgpackError(f'Illegal boolean value: {value}')
+
+    if t is NoneType: return ebuf.wr_uint1(ConstValNone)
+
+    if   t is bytes: ectx._v(None).put_bytes(True, value)
+    elif t is tuple: ectx._v(None).put_sequence(True, value)
+    elif t is list:  ectx._v(None).put_sequence(False, value)
+    elif t is dict:  ectx._v(None).put_dict(None, value, codec.sort_keys)
+    else:            codec.encode_value(ectx._v(value)); ectx._mark_use(True)
+

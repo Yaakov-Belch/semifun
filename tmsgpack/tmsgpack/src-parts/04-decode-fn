@@ -1,0 +1,140 @@
+cdef class DecodeCtx:
+
+    # Warning: This object is mutable and shared.
+    # The values self._len, self._type, self._bytes change whenever new values are read.
+    # Copy early and use the copies!
+
+    cdef readonly TMsgpackCodec  codec
+    cdef BaseDecodeBuffer        dbuf
+    cdef readonly uint64_t       _len
+    cdef readonly object         _type
+    cdef readonly bint           _bytes
+    cdef bint                    _used
+
+    def __cinit__(self, TMsgpackCodec codec, BaseDecodeBuffer dbuf):
+        self.codec  = codec
+        self.dbuf   = dbuf
+        self._len   = 0
+        self._type  = None
+        self._bytes = False
+        self._used  = True    # Set to False directly before use.
+
+    cdef _ltb(self, _len, _type, _bytes):
+        self._len   = _len
+        self._type  = _type
+        self._used  = False
+        self._bytes = _bytes
+        return self
+
+    cdef _mark_use(self, bint expect_used):
+        if expect_used is not self._used:
+            if expect_used: raise TMsgpackError('dctx was not used.')
+            else:           raise TMsgpackError('dctx used twice.')
+        self._used = True
+        if expect_used: self._len=0; self._type=None; self._bytes=False
+
+    cpdef list take_list(self):
+        if self._bytes: raise TMsgpackError('take_list called for bytes')
+        self._mark_use(False)
+
+        _list = []
+        for i in range(self._len): _list.append(dctx_take_value(self))
+        return _list
+
+    cpdef tuple take_tuple(self): return tuple(self.take_list())
+
+    cpdef dict take_dict(self):
+        if self._bytes: raise TMsgpackError('take_dict called for bytes')
+        self._mark_use(False)
+
+        _dict = {}
+        for i in range(self._len // 2):
+            k = dctx_take_value(self)
+            v = dctx_take_value(self)
+            _dict[k] = v
+        return _dict
+
+    cpdef bytes take_bytes(self):
+        if not self._bytes: raise TMsgpackError('take_bytes called for list')
+        self._mark_use(False)
+        return self.dbuf.rd_bytes(self._len)
+
+    cpdef str take_str(self):
+        if not self._bytes: raise TMsgpackError('take_str called for list')
+        self._mark_use(False)
+        return self.dbuf.rd_str(self._len)
+
+cpdef object dbuf_take_value(TMsgpackCodec codec, BaseDecodeBuffer dbuf):
+    """Take one msg out of dbuf and return the decoded value."""
+    return dctx_take_value(DecodeCtx(codec, dbuf))
+
+cdef dctx_take_value(DecodeCtx dctx):
+    cdef TMsgpackCodec    codec = dctx.codec
+    cdef BaseDecodeBuffer dbuf  = dctx.dbuf
+    cdef uint64_t _len
+    cdef object   _type
+
+    cdef uint8_t  opcode = dbuf.rd_uint1()
+
+    if not (0 <= opcode < ui1_max):
+        raise TMsgpackError(f'Opcode out of range 0-255: {opcode}')
+
+    # Note: Reverse stacked ranges.
+    # Every range is bounded above by the range right before it.
+    # This is intentional and consistent with the format definition.
+    # It provides correct upper bounds for opcodes in each range.
+
+    if ConstNegInt <= opcode: return <int64_t>(opcode - ui1_max)  # negative integer
+
+    if NotUsed <= opcode: raise TMsgpackError(f'Undefined opcode: {opcode}')
+    if ConstValStart <= opcode: return _map_consts[opcode - ConstValStart]
+
+    if FixTuple0 <= opcode:
+        if   opcode == VarTuple1: _len = <uint64_t>dbuf.rd_uint1()
+        elif opcode == VarTuple2: _len = <uint64_t>dbuf.rd_uint2()
+        elif opcode == VarTuple8: _len = <uint64_t>dbuf.rd_uint8()
+        else:                     _len = <uint64_t>(opcode - FixTuple0)
+        # The else branch handles FixTuple0, ..., FixTuple16
+
+        _type = dbuf_take_value(codec, dbuf)
+
+        if _type is True:  return dctx._ltb(_len, _type, False).take_tuple()
+        if _type is False: return dctx._ltb(_len, _type, False).take_list()
+        if _type is None:  return dctx._ltb(_len, _type, False).take_dict()
+        result = codec.decode_from_list(dctx._ltb(_len, _type, False))
+        dctx._mark_use(True)
+        return result
+
+    if FixBytes0 <= opcode:
+        if   opcode == VarBytes1: _len = <uint64_t>dbuf.rd_uint1()
+        elif opcode == VarBytes2: _len = <uint64_t>dbuf.rd_uint2()
+        elif opcode == VarBytes8: _len = dbuf.rd_uint8()
+        else:                     _len = <uint64_t>_map_01248_16_20_32[opcode - FixBytes0]
+        # The else branch catches FixBytes0/1/2/4/8/16/20/32
+
+        _type = dbuf_take_value(codec, dbuf)
+
+        if _type is True: return dctx._ltb(_len, _type, True).take_bytes()
+        result = codec.decode_from_bytes(dctx._ltb(_len, _type, True))
+        dctx._mark_use(True)
+        return result
+
+    if FixStr0 <= opcode:
+        if opcode == VarStr1: return dbuf.rd_str(<int>dbuf.rd_uint1())
+        if opcode == VarStr2: return dbuf.rd_str(<int>dbuf.rd_uint2())
+        if opcode == VarStr8: return dbuf.rd_str(<int>dbuf.rd_uint8())
+        else:                 return dbuf.rd_str(<int>(opcode - FixStr0))
+        # The else branch catches FixStr0, ..., FixStr15
+
+    if FixFloat8 <= opcode:   return dbuf.rd_float8()
+    if FixInt2   <= opcode:
+        if opcode == FixInt2: return <int64_t>dbuf.rd_int2()
+        if opcode == FixInt4: return <int64_t>dbuf.rd_int4()
+        if opcode == FixInt8: return dbuf.rd_int8()
+
+    if 0         <= opcode:   return <int64_t>opcode  # const integer
+
+
+cdef list _map_consts = [True, False, None]  # ConstValTrue, ConstValFalse, ConstValNone
+cdef list _map_01248_16_20_32 = [0, 1, 2, 4, 8, 16, 20, 32]  # FixBytes0-FixBytes32
+
