@@ -1,0 +1,84 @@
+name: Publish to PyPI and NPM
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish-yb-tools:
+    runs-on: ubuntu-latest
+    environment: release
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.14'
+
+    - name: Build yb-tools
+      run: |
+        python -m pip install build
+        rm -rf dist/
+        python -m build
+
+    - name: Publish yb-tools to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-tmsgpack:
+    runs-on: ubuntu-latest
+    environment: release
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.14'
+
+    - name: Build tmsgpack sdist
+      run: |
+        cd tmsgpack
+        python -m pip install build
+        rm -rf dist/
+        python -m build --sdist
+
+    - name: Publish tmsgpack to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        packages-dir: tmsgpack/dist/
+
+  publish-tmsgpack-js:
+    runs-on: ubuntu-latest
+    environment: release
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Ensure npm 11.5.1 or later is installed
+      run: npm install -g npm@latest
+
+    - name: Publish to NPM
+      run: npm publish --provenance
+      working-directory: ./tmsgpack-js
