@@ -1,6 +1,6 @@
 [project]
 name = "yb-tools"
-version = "0.1.0"
+version = "0.2.23"
 description = "Caching, plugins, dependency injection, and CLI dispatch utilities"
 requires-python = ">=3.14"
 license = {text = "ISC"}
