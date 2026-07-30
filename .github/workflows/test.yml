@@ -1,0 +1,56 @@
+name: Tests
+
+on:
+  push:
+    branches: [v0.1, main]
+  pull_request:
+
+jobs:
+  yb-tools:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.14'
+
+    - name: Install and test
+      run: |
+        pip install -e '.[tmsgpack]' pytest pytest-asyncio pytest-timeout
+        pytest tests/
+
+  tmsgpack:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.14'
+
+    - name: Install and test
+      run: |
+        pip install -e .
+        cd tmsgpack
+        pip install -e . pytest pytest-asyncio pytest-timeout
+        pytest tests/
+
+  tmsgpack-js:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Test
+      run: node test/test.js
+      working-directory: ./tmsgpack-js
