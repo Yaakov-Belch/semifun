@@ -7,9 +7,6 @@ Two engines are exposed:
 
 * `cli_dispatch_engine` — async, awaits in the caller's loop.  The standard.
 * `sync_cli_dispatch_engine` — sync, for commands that must own the loop.
-
-`asyncio.run()` belongs in the application's entry point, not here; see
-[[:cli-dispatch-engine-does-not-own-the-loop]].
 """
 
 import asyncio
@@ -35,9 +32,6 @@ async def cli_dispatch_engine(
 
     Runs inside the caller's event loop — it does not create one.  This is
     the standard engine; see `sync_cli_dispatch_engine` for the other path.
-
-    Every argument is required, per [[:no-default-values]]: the caller passes
-    `sys.argv[1:]` explicitly, and `{}` for empty seed data.
 
     Args:
         cli_feature_type: Feature type for CLI commands (e.g., 'cli').

@@ -12,6 +12,9 @@ dependencies = [
     "yb-tools>=0.1.0",
 ]
 
+[tool.uv.sources]
+yb-tools = { workspace = true }
+
 [project.urls]
 Source = "https://github.com/Yaakov-Belch/yb-tools"
 Tracker = "https://github.com/Yaakov-Belch/yb-tools/issues"

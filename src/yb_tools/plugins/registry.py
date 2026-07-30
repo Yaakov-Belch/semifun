@@ -32,8 +32,7 @@ def create_registry(
     hidden-feature: `create_disk_cache=True` writes each package's index to
     disk, so that a frozen distribution can skip scanning at every start.  Set
     by a packaging step, never at run time — see `get_index`, which explains
-    the flag and its hazard.  Defaulted against [[:no-default-values]] so that
-    a caller resolving features is not asked a build-time question.
+    the flag and its hazard.
 
     Escalate periodically: is this still wanted?
     """
@@ -84,7 +83,6 @@ class FeatureMap:
         `default=None` — it selects a different behaviour, raising
         `LookupError` instead of returning a value.  `None` is itself a
         legitimate default, so the two cases cannot share a spelling.
-        See [[feature_map:default]] and [[:no-default-values]].
         """
         match = self.by_name.get(feature)
         if match is not None:

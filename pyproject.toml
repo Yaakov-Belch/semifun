@@ -12,6 +12,12 @@ dependencies = []
 [project.optional-dependencies]
 tmsgpack = ["tmsgpack>=0.1.0"]
 
+[tool.uv.sources]
+tmsgpack = { workspace = true }
+
+[tool.uv.workspace]
+members = ["tmsgpack"]
+
 [project.urls]
 Source = "https://github.com/Yaakov-Belch/yb-tools"
 Tracker = "https://github.com/Yaakov-Belch/yb-tools/issues"

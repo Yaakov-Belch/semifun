@@ -42,7 +42,7 @@ def make_match(package, ftype, name, alias, file_path, dotted_module_name):
     )
 
 
-# Every builder argument is required, per [[:no-default-values]]: each call
+# Every builder argument is required: each call
 # below states the whole fixture, so what a test varies is visible in it.
 
 

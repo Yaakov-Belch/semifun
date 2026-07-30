@@ -89,7 +89,7 @@ def load_all_features(
     Args:
         registry: The plugin registry to inspect.
         feature_types: Only load features of these types.  `None` loads all —
-            a meaningful value, passed explicitly per [[:no-default-values]].
+            a meaningful value, passed explicitly.
 
     Returns:
         Sorted list of LoadedFeature(feature_type, name, object).

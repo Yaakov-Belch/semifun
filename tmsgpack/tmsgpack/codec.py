@@ -29,9 +29,9 @@ class NoDependencyInjector:
 class TmsgpackCodec(EncodeDecode):
     sort_keys: bool
     di: DependencyInjectorProtocol
-    # Memoization only: init=False keeps them out of the constructor, per
-    # [[:no-default-values]].  `replace()` would re-run default_factory and
-    # silently drop them, so with_seed_data re-attaches them explicitly --
+    # Memoization only: init=False keeps them out of the constructor.
+    # `replace()` would re-run default_factory and silently drop them.
+    # So with_seed_data re-attaches them explicitly --
     # the same pattern as DependencyInjector._call_with_args_sig_cache.
     encoder_cache: dict = field(default_factory=dict, init=False, repr=False)
     decoder_cache: dict = field(default_factory=dict, init=False, repr=False)

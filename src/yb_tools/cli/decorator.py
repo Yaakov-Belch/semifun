@@ -15,8 +15,7 @@ def sync_function_owns_async_loop(fn):
     `sync_cli_dispatch_engine` detects this attribute and uses the sync DI
     API (sync_call_with_args).  `cli_dispatch_engine`, the standard engine,
     ignores it: such a command cannot be awaited, which is why it needs the
-    engine that owns the loop.  See
-    [[:cli-dispatch-engine-does-not-own-the-loop]].
+    engine that owns the loop.
 
     Usage:
         @sync_function_owns_async_loop

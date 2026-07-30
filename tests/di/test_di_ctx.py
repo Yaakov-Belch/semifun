@@ -22,7 +22,7 @@ def make_map(d):
     _MISSING = object()
 
     # documented-default: mirrors FeatureMap.__call__ — omitting `default`
-    # means "raise", which `None` cannot express.  See [[:no-default-values]].
+    # means "raise", which `None` cannot express.
     def lookup(name, default=_MISSING):   # documented-default
         if name in d:
             return d[name]

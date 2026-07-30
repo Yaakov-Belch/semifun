@@ -77,7 +77,7 @@ def test_types(tmp_path):
 def _make_injectors_map():
     _MISSING = object()
     # documented-default: mirrors FeatureMap.__call__ — omitting `default`
-    # means "raise", which `None` cannot express.  See [[:no-default-values]].
+    # means "raise", which `None` cannot express.
     def lookup(name, default=_MISSING):   # documented-default
         if default is not _MISSING:
             return default

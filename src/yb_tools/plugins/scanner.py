@@ -79,8 +79,7 @@ def build_indexed_file(
     """Parse one file's raw comments into an IndexedFile of FeatureSpec objects.
 
     `entry_point_group` / `entry_point_name` are `None` when the file was not
-    reached through an entry point; pass them explicitly, per
-    [[:no-default-values]].
+    reached through an entry point; pass them explicitly.
     """
     feature_specs = []
     for comment in comments:

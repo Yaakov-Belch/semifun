@@ -41,8 +41,7 @@ def get_index(package_path: Path, create_disk_cache: bool = False) -> dict[str, 
     later start reads one JSON file instead of walking the sources.
 
     **Who sets it.**  A packaging step, deliberately, against code that is
-    about to be frozen.  Nothing at run time sets it: that is why it is
-    defaulted against [[:no-default-values]] — a caller looking up a feature
+    about to be frozen.  Nothing at run time sets it — a caller looking up a feature
     should not have to answer a build-time question.
 
     **Caution.**  A written index is preferred over scanning and nothing
@@ -73,8 +72,7 @@ def index_to_model(
     """Convert raw index data into IndexedFile model objects.
 
     `entry_point_group` / `entry_point_name` are `None` for registries built
-    from explicit paths rather than entry points; pass them explicitly, per
-    [[:no-default-values]].
+    from explicit paths rather than entry points; pass them explicitly.
     """
     return [
         build_indexed_file(

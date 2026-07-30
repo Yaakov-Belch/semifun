@@ -117,7 +117,7 @@ class FeaturePluginsIndex:
         """Find features matching the given criteria. None = match any.
 
         All three filters are required: `None` is a meaningful value ("match
-        any") and must be passed explicitly, per [[:no-default-values]].
+        any") and must be passed explicitly.
         """
         matches = self._all_matches
         if feature_type is not None:
