@@ -7,8 +7,8 @@ injectors, async generator cleanup) are tested separately as errors.
 
 import pytest
 
-from yb_tools.di.model import Inject
-from yb_tools.di.injector import DependencyInjector
+from semifun.di.model import Inject
+from semifun.di.injector import DependencyInjector
 
 
 # --- Sample types ---

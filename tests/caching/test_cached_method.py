@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from yb_tools.caching.cached_method import cached_method
+from semifun.caching.cached_method import cached_method
 
 
 @dataclass(frozen=True)

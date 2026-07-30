@@ -2,8 +2,8 @@
 
 import pytest
 
-from yb_tools.di.model import Inject, MISSING
-from yb_tools.di.signature_processing import (
+from semifun.di.model import Inject, MISSING
+from semifun.di.signature_processing import (
     cache_key_for,
     process_call_with_args_signature,
 )

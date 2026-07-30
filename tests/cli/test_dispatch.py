@@ -8,8 +8,8 @@ import pytest
 from dataclasses import dataclass
 from pathlib import Path
 
-from yb_tools.plugins.testing import create_registry_from_paths, feature_map_from_registry
-from yb_tools.cli.dispatch import (
+from semifun.plugins.testing import create_registry_from_paths, feature_map_from_registry
+from semifun.cli.dispatch import (
     cli_dispatch_engine,
     sync_cli_dispatch_engine,
 )
@@ -41,7 +41,7 @@ def _make_cli_package(tmp_path):
         "    '''Sum numbers.'''\n"
         "    return sum(numbers)\n"
         "\n"
-        "from yb_tools.cli.decorator import sync_function_owns_async_loop\n"
+        "from semifun.cli.decorator import sync_function_owns_async_loop\n"
         "\n"
         "#::cli:sync_server\n"
         "@sync_function_owns_async_loop\n"
@@ -166,8 +166,8 @@ def cli_map():
     argument unchanged, so no patching is needed.
     See [[feature_map:testing-seam]].
     """
-    from yb_tools.di.model import Inject
-    from yb_tools.cli.decorator import sync_function_owns_async_loop
+    from semifun.di.model import Inject
+    from semifun.cli.decorator import sync_function_owns_async_loop
 
     async def async_greet(name):
         """Greet someone, asynchronously."""

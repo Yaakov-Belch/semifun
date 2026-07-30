@@ -1,6 +1,6 @@
 """Tests for split_argv — pure string parsing."""
 
-from yb_tools.cli.argv import split_argv
+from semifun.cli.argv import split_argv
 
 
 def test_empty():

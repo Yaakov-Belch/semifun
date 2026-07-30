@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  publish-yb-tools:
+  publish-semifun:
     runs-on: ubuntu-latest
     environment: release
 
@@ -22,13 +22,13 @@ jobs:
       with:
         python-version: '3.14'
 
-    - name: Build yb-tools
+    - name: Build semifun
       run: |
         python -m pip install build
         rm -rf dist/
         python -m build
 
-    - name: Publish yb-tools to PyPI
+    - name: Publish semifun to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
 
   publish-tmsgpack:

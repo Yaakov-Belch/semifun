@@ -1,7 +1,7 @@
 from base64 import urlsafe_b64encode
 from dataclasses import dataclass, field, fields, is_dataclass, replace
 from typing import Any, Protocol
-from yb_tools.caching.cached_property import cached_property
+from semifun.caching.cached_property import cached_property
 
 import enum
 from .api import EncodeDecode
@@ -73,7 +73,7 @@ class TmsgpackCodec(EncodeDecode):
 
     @cached_property
     def feature_map(self):
-        from yb_tools.plugins.registry import get_cached_feature_map
+        from semifun.plugins.registry import get_cached_feature_map
         return get_cached_feature_map(feature_type=self.plugin_feature_type)
 
     def type_to_type_name(self, _type):

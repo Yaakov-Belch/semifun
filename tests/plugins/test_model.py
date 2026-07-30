@@ -11,7 +11,7 @@ These tests demonstrate:
 import pytest
 from pathlib import Path
 
-from yb_tools.plugins.model import (
+from semifun.plugins.model import (
     FeatureSpec, IndexedFile,
     FeatureMatch, FeatureMatches, FeaturePluginsIndex,
 )
@@ -50,20 +50,20 @@ def make_match(package, ftype, name, alias, file_path, dotted_module_name):
 
 def test_loaded_object_imports_function():
     """loaded_object imports the module by dotted name and returns the named attribute."""
-    from yb_tools.plugins.scanner import scan_file
+    from semifun.plugins.scanner import scan_file
     match = make_match(
         package='test_pkg', ftype='cli', name='scan_file',
-        alias=None, file_path=None, dotted_module_name='yb_tools.plugins.scanner',
+        alias=None, file_path=None, dotted_module_name='semifun.plugins.scanner',
     )
     assert match.loaded_object is scan_file
 
 
 def test_loaded_object_uses_alias():
     """When feature_alias is set, loaded_object resolves the aliased Python name."""
-    from yb_tools.plugins.scanner import scan_file
+    from semifun.plugins.scanner import scan_file
     match = make_match(
         package='test_pkg', ftype='cli', name='extract',
-        alias='scan_file', file_path=None, dotted_module_name='yb_tools.plugins.scanner',
+        alias='scan_file', file_path=None, dotted_module_name='semifun.plugins.scanner',
     )
     assert match.loaded_object is scan_file
 

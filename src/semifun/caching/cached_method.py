@@ -1,6 +1,6 @@
 import inspect
 import functools
-from yb_tools.caching.dictdefault import dictdefault
+from semifun.caching.dictdefault import dictdefault
 
 
 def cached_method(fn):

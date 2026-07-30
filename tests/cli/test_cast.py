@@ -2,7 +2,7 @@
 
 import pytest
 
-from yb_tools.cli.cast import cast_args
+from semifun.cli.cast import cast_args
 
 
 # --- Basic type casting ---

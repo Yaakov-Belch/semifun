@@ -9,7 +9,7 @@ import asyncio
 
 import pytest
 
-from yb_tools.caching.dictdefault import dictdefault
+from semifun.caching.dictdefault import dictdefault
 
 
 # --- Sync, no key passed ---

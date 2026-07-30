@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).parent
 
 TARGETS = {
     "VERSION": REPO_ROOT / "VERSION",
-    "pyproject.toml (yb-tools)": REPO_ROOT / "pyproject.toml",
+    "pyproject.toml (semifun)": REPO_ROOT / "pyproject.toml",
     "tmsgpack/pyproject.toml": REPO_ROOT / "tmsgpack" / "pyproject.toml",
     "tmsgpack-js/package.json": REPO_ROOT / "tmsgpack-js" / "package.json",
 }
@@ -68,7 +68,7 @@ def main():
 
     updaters = {
         "VERSION": update_version_file,
-        "pyproject.toml (yb-tools)": update_toml_version,
+        "pyproject.toml (semifun)": update_toml_version,
         "tmsgpack/pyproject.toml": update_toml_version,
         "tmsgpack-js/package.json": update_package_json,
     }

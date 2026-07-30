@@ -11,9 +11,9 @@ import json
 import pytest
 from pathlib import Path
 
-from yb_tools.plugins.testing import create_registry_from_paths
-from yb_tools.plugins.model import FeaturePluginsIndex
-from yb_tools.plugins.index import INDEX_FILENAME, get_index, write_index, build_index
+from semifun.plugins.testing import create_registry_from_paths
+from semifun.plugins.model import FeaturePluginsIndex
+from semifun.plugins.index import INDEX_FILENAME, get_index, write_index, build_index
 
 
 def _write_sample_package(tmp_path):
@@ -121,11 +121,11 @@ def test_cache_is_deterministic(tmp_path):
     assert json1 == json2
 
 
-# --- yb_tools.plugins.testing: every declaration resolves ---
+# --- semifun.plugins.testing: every declaration resolves ---
 
 def test_load_all_features_imports_every_declaration(tmp_path):
     """load_all_features proves each #:: declaration names a real object."""
-    from yb_tools.plugins.testing import get_feature_types, load_all_features
+    from semifun.plugins.testing import get_feature_types, load_all_features
 
     pkg = tmp_path / "load_pkg"
     pkg.mkdir()
@@ -153,7 +153,7 @@ def test_load_all_features_imports_every_declaration(tmp_path):
 
 def test_load_all_features_raises_on_a_broken_declaration(tmp_path):
     """A #:: name that does not exist in the module is caught, not ignored."""
-    from yb_tools.plugins.testing import load_all_features
+    from semifun.plugins.testing import load_all_features
 
     pkg = tmp_path / "broken_pkg"
     pkg.mkdir()

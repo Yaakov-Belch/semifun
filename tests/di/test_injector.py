@@ -2,8 +2,8 @@
 
 import pytest
 
-from yb_tools.di.model import Inject
-from yb_tools.di.injector import DependencyInjector
+from semifun.di.model import Inject
+from semifun.di.injector import DependencyInjector
 
 
 # --- Sample dataclass-like types ---

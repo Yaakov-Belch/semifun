@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 
-from yb_tools.caching.cached_property import cached_property
+from semifun.caching.cached_property import cached_property
 
 from .model import FeaturePluginsIndex, FeatureMatches, FeatureMatch
 from .index import get_index, index_to_model

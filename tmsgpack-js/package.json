@@ -3,14 +3,14 @@
   "version": "0.2.23",
   "description": "Typed MessagePack serializer (inspired by but different from msgpack)",
   "author": "Yaakov Belch <yaakov.belch@gmail.com>",
-  "homepage": "https://github.com/Yaakov-Belch/yb-tools",
+  "homepage": "https://github.com/Yaakov-Belch/semifun",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Yaakov-Belch/yb-tools.git",
+    "url": "git+https://github.com/Yaakov-Belch/semifun.git",
     "directory": "tmsgpack-js"
   },
   "bugs": {
-    "url": "https://github.com/Yaakov-Belch/yb-tools/issues"
+    "url": "https://github.com/Yaakov-Belch/semifun/issues"
   },
   "keywords": [
     "tmsgpack",

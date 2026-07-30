@@ -7,7 +7,7 @@ These tests demonstrate:
 """
 
 from pathlib import Path
-from yb_tools.plugins.scanner import scan_file, scan_package, parse_annotation
+from semifun.plugins.scanner import scan_file, scan_package, parse_annotation
 
 
 def test_scan_file_finds_annotations(tmp_path):

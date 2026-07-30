@@ -2,7 +2,7 @@ import importlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from yb_tools.caching.cached_property import cached_property
+from semifun.caching.cached_property import cached_property
 
 
 # --- All-knowable-data frozen dataclasses ---

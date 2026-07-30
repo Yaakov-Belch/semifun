@@ -37,7 +37,7 @@ def _mk_dictdefault():
         return dictdefault
 
     def _dda(with_key):
-        from yb_tools.caching.cached_property import create_task_loop_check
+        from semifun.caching.cached_property import create_task_loop_check
         async def dictdefault(_d, _key, _fn, **kwargs):
             if _key not in _d:
                 _d[_key] = (

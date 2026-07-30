@@ -9,15 +9,15 @@ authors = [
 ]
 dependencies = [
     "xxhash",
-    "yb-tools>=0.1.0",
+    "semifun>=0.1.0",
 ]
 
 [tool.uv.sources]
-yb-tools = { workspace = true }
+semifun = { workspace = true }
 
 [project.urls]
-Source = "https://github.com/Yaakov-Belch/yb-tools"
-Tracker = "https://github.com/Yaakov-Belch/yb-tools/issues"
+Source = "https://github.com/Yaakov-Belch/semifun"
+Tracker = "https://github.com/Yaakov-Belch/semifun/issues"
 
 [dependency-groups]
 dev = [

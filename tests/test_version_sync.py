@@ -22,7 +22,7 @@ def test_all_versions_match():
 
     versions = {
         "VERSION": version_file.read_text().strip(),
-        "pyproject.toml (yb-tools)": _read_toml_version(root_toml),
+        "pyproject.toml (semifun)": _read_toml_version(root_toml),
         "tmsgpack/pyproject.toml": _read_toml_version(tmsgpack_toml),
         "tmsgpack-js/package.json": json.loads(package_json.read_text())["version"],
     }

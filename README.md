@@ -1,4 +1,4 @@
-# yb-tools
+# semifun
 
 Python utilities: caching, plugin discovery, dependency injection, and CLI dispatch.
 
@@ -8,8 +8,8 @@ Python (Cython) and JavaScript implementations:
 - `tmsgpack/` -- Python package (published to PyPI as `tmsgpack`)
 - `tmsgpack-js/` -- JavaScript package (published to npm as `tmsgpack`)
 
-Install the pure-Python tools with `pip install yb-tools`. To include tmsgpack,
-use `pip install yb-tools[tmsgpack]` (requires a C compiler for Cython).
+Install the pure-Python tools with `pip install semifun`. To include tmsgpack,
+use `pip install semifun[tmsgpack]` (requires a C compiler for Cython).
 
 
 ## Versioning
@@ -41,30 +41,30 @@ python bump_version_and_publish.py 0.2.0
 
 This triggers three parallel CI jobs:
 
-- **yb-tools** -- built and published to PyPI (wheel + sdist)
+- **semifun** -- built and published to PyPI (wheel + sdist)
 - **tmsgpack** -- published to PyPI as an sdist (users compile Cython on install)
 - **tmsgpack-js** -- published to npm with provenance
 
 Before the first publish, configure trusted publishers on PyPI and npm for the
-`Yaakov-Belch/yb-tools` repository, and create a `release` environment in the
+`Yaakov-Belch/semifun` repository, and create a `release` environment in the
 GitHub repo settings.
 
 
 ## Development
 
 The repo uses a [uv workspace](https://docs.astral.sh/uv/concepts/workspaces/)
-so that `tmsgpack` resolves `yb-tools` locally during development.
+so that `tmsgpack` resolves `semifun` locally during development.
 
 ```bash
-git clone https://github.com/Yaakov-Belch/yb-tools.git
-cd yb-tools
+git clone https://github.com/Yaakov-Belch/semifun.git
+cd semifun
 uv sync
 ```
 
 Run the tests:
 
 ```bash
-# yb-tools (pure Python)
+# semifun (pure Python)
 uv run pytest tests/
 
 # tmsgpack (requires Cython build)

@@ -14,9 +14,9 @@ import inspect
 import sys
 import textwrap
 
-from yb_tools.plugins.registry import get_cached_feature_map
+from semifun.plugins.registry import get_cached_feature_map
 
-from yb_tools.di.registry_integration import get_injector
+from semifun.di.registry_integration import get_injector
 
 from .argv import split_argv
 from .cast import cast_args

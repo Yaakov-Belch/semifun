@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from yb_tools.caching.cached_property import cached_property
+from semifun.caching.cached_property import cached_property
 
 
 # Deadlock detection depends on the *cached* awaitable being returned again:

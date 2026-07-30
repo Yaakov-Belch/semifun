@@ -4,7 +4,7 @@ Requires the optional `registry` extra:
     pip install semifun-dependency-injection[registry]
 
 Usage:
-    from yb_tools.di.registry_integration import get_injector
+    from semifun.di.registry_integration import get_injector
 
     di = get_injector('xctx_injector')
     di = get_injector('di_injector')
@@ -14,7 +14,7 @@ Returns the same DependencyInjector instance for each feature_type (cached).
 
 from functools import cache
 
-from yb_tools.plugins.registry import get_cached_feature_map
+from semifun.plugins.registry import get_cached_feature_map
 from .injector import DependencyInjector
 
 

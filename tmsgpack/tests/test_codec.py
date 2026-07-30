@@ -4,13 +4,13 @@ import textwrap
 import pytest
 from pathlib import Path
 
-pytest.importorskip("yb_tools.di")
-pytest.importorskip("yb_tools.plugins")
+pytest.importorskip("semifun.di")
+pytest.importorskip("semifun.plugins")
 
 from tmsgpack.codec import NoDependencyInjector, TmsgpackCodec
-from yb_tools.di.injector import DependencyInjector
-from yb_tools.plugins.testing import create_registry_from_paths
-from yb_tools.plugins.registry import (
+from semifun.di.injector import DependencyInjector
+from semifun.plugins.testing import create_registry_from_paths
+from semifun.plugins.registry import (
     _feature_map_from_registry,
 )
 
@@ -24,7 +24,7 @@ def _write_test_types_package(tmp_path: Path) -> Path:
     (pkg / "types.py").write_text(textwrap.dedent("""\
         import enum
         from dataclasses import dataclass
-        from yb_tools.di.model import Inject
+        from semifun.di.model import Inject
 
         _HTTP_STATUS = (200, 404, 403, 401, 500)
 
@@ -175,7 +175,7 @@ def test_inject_field_without_an_injector_fails_on_encode():
     from dataclasses import dataclass
 
     from tmsgpack.codec import NoDependencyInjector, TmsgpackCodec
-    from yb_tools.di.model import Inject
+    from semifun.di.model import Inject
 
     class DbHandle:
         pass

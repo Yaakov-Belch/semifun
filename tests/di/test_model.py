@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from yb_tools.di.model import (
+from semifun.di.model import (
     Inject,
     InjectArg,
     PassThroughArg,

@@ -1,6 +1,6 @@
 """Tests for the sync_function_owns_async_loop decorator."""
 
-from yb_tools.cli.decorator import sync_function_owns_async_loop
+from semifun.cli.decorator import sync_function_owns_async_loop
 
 
 def test_decorator_sets_attribute():
