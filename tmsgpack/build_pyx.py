@@ -34,8 +34,12 @@ __version__ = "{version}"
 
 
 def read_version() -> str:
-    """The single source of truth for the version: repo-root VERSION file."""
-    return VERSION_FILE.read_text().strip()
+    """Read version from repo-root VERSION file, or from pyproject.toml in an sdist."""
+    if VERSION_FILE.exists():
+        return VERSION_FILE.read_text().strip()
+    import tomllib
+    pyproject = PACKAGE_ROOT / 'pyproject.toml'
+    return tomllib.loads(pyproject.read_text())['project']['version']
 
 
 def render_pyx() -> str:
