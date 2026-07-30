@@ -2,8 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [v0.1, main]
-  pull_request:
+    branches: [main]
 
 jobs:
   yb-tools:
