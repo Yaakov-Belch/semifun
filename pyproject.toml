@@ -10,7 +10,7 @@ authors = [
 dependencies = []
 
 [project.optional-dependencies]
-tmsgpack = ["tmsgpack>=0.1.0"]
+tmsgpack = ["tmsgpack>=0.3.4"]
 
 [tool.uv.sources]
 tmsgpack = { workspace = true }
