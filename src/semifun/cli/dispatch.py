@@ -16,6 +16,9 @@ import textwrap
 
 from semifun.plugins.registry import get_cached_feature_map
 
+from semifun.di.model import Inject
+from semifun.di.async_execution_context import AsyncExecutionContext
+from semifun.di.sync_execution_context import SyncExecutionContext
 from semifun.di.registry_integration import get_injector
 
 from .argv import split_argv
@@ -53,14 +56,13 @@ async def cli_dispatch_engine(
 
     di = get_injector(injector_feature_type).with_seed_data(seed_data)
 
-    await di.async_call_with_args(
-        fn=fn,
-        args=cast_positional,
-        kwargs=cast_kwargs,
-    )
+    async def combined_context(*, ctx: Inject[AsyncExecutionContext]):
+        await ctx.invoke_call_with_args(fn, args=cast_positional, kwargs=cast_kwargs)
 
-    if post_cli_hook := di.injectors_map(feature='post_cli_hook', default=None):
-        await di.async_call_with_args(fn=post_cli_hook, args=(), kwargs={})
+        if post_cli_hook := di.injectors_map(feature='post_cli_hook', default=None):
+            await ctx.invoke_call_with_args(post_cli_hook, args=(), kwargs={})
+
+    await di.async_call_with_args(fn=combined_context, args=(), kwargs={})
 
 
 def sync_cli_dispatch_engine(
@@ -82,24 +84,21 @@ def sync_cli_dispatch_engine(
     fn, cast_positional, cast_kwargs = resolved
 
     di = get_injector(injector_feature_type).with_seed_data(seed_data)
-    post_cli_hook = di.injectors_map(feature='post_cli_hook', default=None)
 
     if getattr(fn, 'sync_function_owns_async_loop', False):
-        di.sync_call_with_args(
-            fn=fn,
-            args=cast_positional,
-            kwargs=cast_kwargs,
-        )
-        if post_cli_hook:
-            di.sync_call_with_args(fn=post_cli_hook, args=(), kwargs={})
+        def combined_context(*, ctx: Inject[SyncExecutionContext]):
+            ctx.invoke_call_with_args(fn, args=cast_positional, kwargs=cast_kwargs)
+            if post_cli_hook := di.injectors_map(feature='post_cli_hook', default=None):
+                ctx.invoke_call_with_args(post_cli_hook, args=(), kwargs={})
+
+        di.sync_call_with_args(fn=combined_context, args=(), kwargs={})
     else:
-        asyncio.run(di.async_call_with_args(
-            fn=fn,
-            args=cast_positional,
-            kwargs=cast_kwargs,
-        ))
-        if post_cli_hook:
-            asyncio.run(di.async_call_with_args(fn=post_cli_hook, args=(), kwargs={}))
+        async def combined_context(*, ctx: Inject[AsyncExecutionContext]):
+            await ctx.invoke_call_with_args(fn, args=cast_positional, kwargs=cast_kwargs)
+            if post_cli_hook := di.injectors_map(feature='post_cli_hook', default=None):
+                await ctx.invoke_call_with_args(post_cli_hook, args=(), kwargs={})
+
+        asyncio.run(di.async_call_with_args(fn=combined_context, args=(), kwargs={}))
 
 
 def _resolve(cli_feature_type: str, argv: list[str]):

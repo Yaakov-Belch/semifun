@@ -4,7 +4,7 @@
 of truth. Any changes to the DI execution logic must be made in the async file
 first, then propagated here following the rules in `SYNC-CONVERSION.md`.
 
-A new `_SyncExecutionContext` is created for each public sync DI API call.
+A new `SyncExecutionContext` is created for each public sync DI API call.
 It holds the per-call state (resolution cache, cleanup stack, cycle-detection
 lock) and delegates signature lookups to the parent `DependencyInjector`.
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class _SyncExecutionContext:
+class SyncExecutionContext:
     """One sync DI execution. Created fresh per public API call, disposed at end.
 
     Holds:
@@ -40,7 +40,12 @@ class _SyncExecutionContext:
 
     def __post_init__(self) -> None:
         # Shallow copy of seed_data, plus auto-seed DependencyInjector for re-entrant DI access.
-        object.__setattr__(self, 'cache', {**self.injector.seed_data, type(self.injector): self.injector})
+        from .injector import DependencyInjector
+        object.__setattr__(self, 'cache', {
+            **self.injector.seed_data,
+            DependencyInjector: self.injector,
+            SyncExecutionContext: self,
+        })
 
     # --- Resolution of one injected argument ---
 
@@ -60,7 +65,7 @@ class _SyncExecutionContext:
                 f"type {arg.type.__name__!r} is not in seed_data and no injector "
                 f"is registered for that type name."
             )
-        value = self._invoke_call_with_args(arg.injector_fn, args=(), kwargs={})
+        value = self.invoke_call_with_args(arg.injector_fn, args=(), kwargs={})
         if not isinstance(value, arg.type):
             raise TypeError(
                 f"Injector for {arg.type.__name__!r} returned a value of type "
@@ -72,7 +77,7 @@ class _SyncExecutionContext:
 
     # --- Invoking functions with DI ---
 
-    def _invoke_call_with_args(
+    def invoke_call_with_args(
         self,
         fn: Callable[..., Any],
         args: tuple,

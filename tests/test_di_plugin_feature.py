@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock
 
-from semifun.di_plugin_feature import di_plugin_feature
+from semifun.di.di_plugin_feature import di_plugin_feature
 
 
 async def test_di_plugin_feature_calls_through(monkeypatch):
@@ -31,11 +31,11 @@ async def test_di_plugin_feature_calls_through(monkeypatch):
         pass
 
     monkeypatch.setattr(
-        'semifun.di_plugin_feature.get_cached_feature_map',
+        'semifun.di.di_plugin_feature.get_cached_feature_map',
         lambda plugin_type: FakeFeatureMap() if plugin_type == 'my_plugin' else None,
     )
     monkeypatch.setattr(
-        'semifun.di_plugin_feature.get_injector',
+        'semifun.di.di_plugin_feature.get_injector',
         lambda injector_type: FakeDI() if injector_type == 'my_injector' else None,
     )
 

@@ -14,8 +14,8 @@ Holds:
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from .async_execution_context import _AsyncExecutionContext
-from .sync_execution_context import _SyncExecutionContext
+from .async_execution_context import AsyncExecutionContext
+from .sync_execution_context import SyncExecutionContext
 from .model import (
     CallWithArgsSignature,
     injected_type,
@@ -80,9 +80,9 @@ class DependencyInjector:
         kwargs: dict[str, Any],
     ) -> Any:
         """Invoke `fn` with passthrough args/kwargs and Inject[T] resolution."""
-        ctx = _AsyncExecutionContext(injector=self)
+        ctx = AsyncExecutionContext(injector=self)
         try:
-            return await ctx._invoke_call_with_args(fn, args, kwargs)
+            return await ctx.invoke_call_with_args(fn, args, kwargs)
         finally:
             await ctx._cleanup()
 
@@ -96,8 +96,8 @@ class DependencyInjector:
         kwargs: dict[str, Any],
     ) -> Any:
         """Invoke `fn` with passthrough args/kwargs and Inject[T] resolution."""
-        ctx = _SyncExecutionContext(injector=self)
+        ctx = SyncExecutionContext(injector=self)
         try:
-            return ctx._invoke_call_with_args(fn, args, kwargs)
+            return ctx.invoke_call_with_args(fn, args, kwargs)
         finally:
             ctx._cleanup()

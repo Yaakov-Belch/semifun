@@ -1,6 +1,6 @@
 """Per-call async execution context for dependency injection.
 
-A new `_AsyncExecutionContext` is created for each public async DI API call.
+A new `AsyncExecutionContext` is created for each public async DI API call.
 It holds the per-call state (resolution cache, cleanup stack, cycle-detection
 lock) and delegates signature lookups to the parent `DependencyInjector`.
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class _AsyncExecutionContext:
+class AsyncExecutionContext:
     """One async DI execution. Created fresh per public API call, disposed at end.
 
     Holds:
@@ -40,7 +40,12 @@ class _AsyncExecutionContext:
 
     def __post_init__(self) -> None:
         # Shallow copy of seed_data, plus auto-seed DependencyInjector for re-entrant DI access.
-        object.__setattr__(self, 'cache', {**self.injector.seed_data, type(self.injector): self.injector})
+        from .injector import DependencyInjector
+        object.__setattr__(self, 'cache', {
+            **self.injector.seed_data,
+            DependencyInjector: self.injector,
+            AsyncExecutionContext: self,
+        })
 
     # --- Resolution of one injected argument ---
 
@@ -60,7 +65,7 @@ class _AsyncExecutionContext:
                 f"type {arg.type.__name__!r} is not in seed_data and no injector "
                 f"is registered for that type name."
             )
-        value = await self._invoke_call_with_args(arg.injector_fn, args=(), kwargs={})
+        value = await self.invoke_call_with_args(arg.injector_fn, args=(), kwargs={})
         if not isinstance(value, arg.type):
             raise TypeError(
                 f"Injector for {arg.type.__name__!r} returned a value of type "
@@ -72,7 +77,7 @@ class _AsyncExecutionContext:
 
     # --- Invoking functions with DI ---
 
-    async def _invoke_call_with_args(
+    async def invoke_call_with_args(
         self,
         fn: Callable[..., Any],
         args: tuple,
