@@ -1,3 +1,4 @@
+[[:post-cli-hook]]
 # post_cli_hook -- custom error and message reports
 
 * When defined, `post_cli_hook` runs after every CLI command invocation.

@@ -1,3 +1,4 @@
+[[:semifun-cli-shortcut]]
 # How to define and register CLI command dispatchers
 
 * The ready-made function `semifun.cli.dispatch:semifun_cli`:
