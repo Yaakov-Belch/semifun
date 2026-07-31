@@ -16,6 +16,15 @@ async def outer(*, ctx: Inject[AsyncExecutionContext], zctx: Inject[ZCtx]):
     result = await ctx.invoke_call_with_args(inner_fn, args=(), kwargs={})
 ```
 
+For sync functions, use `SyncExecutionContext` with `invoke_call_with_args` (not awaited):
+
+```python
+from semifun.di.sync_execution_context import SyncExecutionContext
+
+def outer(*, ctx: Inject[SyncExecutionContext], zctx: Inject[ZCtx]):
+    result = ctx.invoke_call_with_args(inner_fn, args=(), kwargs={})
+```
+
 ## Isolated context: `Inject[DependencyInjector]`
 
 * The nested call gets a fresh cache — injected types are resolved independently.

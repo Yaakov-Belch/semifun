@@ -11,7 +11,7 @@
 # All #:: registrations are discovered at startup from installed packages (see [[feature_map:pyproject.toml:setup]]).
 
 from semifun.di.model import Inject
-from semifun.di_plugin_feature import di_plugin_feature
+from semifun.di.di_plugin_feature import di_plugin_feature
 
 # --- Application: dispatch a command with dependency injection ---
 
