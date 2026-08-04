@@ -9,7 +9,7 @@ Use `sync_call_with_args` when calling from a synchronous context — identical
 interface, no `await`.
 
 ```python
-di = get_injector('z_injector')
+di = get_injector('z_command_inject')
 result = di.with_seed_data({ZCtx: zctx}).sync_call_with_args(
     fn=my_fn, args=(), kwargs={},
 )

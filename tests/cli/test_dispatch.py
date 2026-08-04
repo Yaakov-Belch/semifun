@@ -67,8 +67,7 @@ def _scanned_cli_map(tmp_path):
 async def _dispatch(tmp_path, argv, capsys):
     """Run argv through the real async engine; return what it printed."""
     await cli_dispatch_engine(
-        cli_feature_type=_scanned_cli_map(tmp_path),
-        injector_feature_type=_noop_injectors_map,
+        feature_type=_scanned_cli_map(tmp_path),
         argv=argv,
         seed_data={},
     )
@@ -116,8 +115,7 @@ async def test_variadic_int_args(tmp_path, capsys):
 def test_sync_server_dispatch(tmp_path, capsys):
     """A loop-owning command needs the sync engine; the async one cannot await it."""
     sync_cli_dispatch_engine(
-        cli_feature_type=_scanned_cli_map(tmp_path),
-        injector_feature_type=_noop_injectors_map,
+        feature_type=_scanned_cli_map(tmp_path),
         argv=['sync_server', 'host=0.0.0.0', 'port=9090'],
         seed_data={},
     )
@@ -133,7 +131,12 @@ class _Ctx:
 
 
 class _FakeCliMap:
-    """Minimal stand-in for the feature map `_resolve` queries."""
+    """Minimal stand-in for the feature map `_resolve` queries.
+
+    Also serves as the injectors map via the testing seam: when
+    cli_dispatch_engine receives a callable feature_type, it uses the same
+    callable for both command lookup and injector lookup.
+    """
 
     def __init__(self, functions):
         self._functions = functions
@@ -148,11 +151,6 @@ class _FakeCliMap:
     @property
     def feature_names_and_objects(self):
         return list(self._functions.items())
-
-
-def _noop_injectors_map(feature, default):
-    """No injectors registered: every Inject[T] must come from seed_data."""
-    return default
 
 
 @pytest.fixture
@@ -183,8 +181,7 @@ def cli_map():
 
 async def test_async_engine_awaits_in_the_callers_loop(cli_map, capsys):
     await cli_dispatch_engine(
-        cli_feature_type=cli_map,
-        injector_feature_type=_noop_injectors_map,
+        feature_type=cli_map,
         argv=['agreet', 'name=Alice'],
         seed_data={},
     )
@@ -193,8 +190,7 @@ async def test_async_engine_awaits_in_the_callers_loop(cli_map, capsys):
 
 async def test_async_engine_prints_help_for_empty_argv(cli_map, capsys):
     await cli_dispatch_engine(
-        cli_feature_type=cli_map,
-        injector_feature_type=_noop_injectors_map,
+        feature_type=cli_map,
         argv=[],
         seed_data={},
     )
@@ -203,8 +199,7 @@ async def test_async_engine_prints_help_for_empty_argv(cli_map, capsys):
 
 def test_sync_engine_runs_a_loop_owning_command(cli_map, capsys):
     sync_cli_dispatch_engine(
-        cli_feature_type=cli_map,
-        injector_feature_type=_noop_injectors_map,
+        feature_type=cli_map,
         argv=['serve', 'host=localhost', 'port=9090'],
         seed_data={},
     )
@@ -213,8 +208,7 @@ def test_sync_engine_runs_a_loop_owning_command(cli_map, capsys):
 
 def test_sync_engine_runs_an_async_command(cli_map, capsys):
     sync_cli_dispatch_engine(
-        cli_feature_type=cli_map,
-        injector_feature_type=_noop_injectors_map,
+        feature_type=cli_map,
         argv=['agreet', 'name=Bob'],
         seed_data={},
     )
@@ -224,8 +218,7 @@ def test_sync_engine_runs_an_async_command(cli_map, capsys):
 def test_unknown_command_exits_nonzero(cli_map, capsys):
     with pytest.raises(SystemExit) as exc:
         sync_cli_dispatch_engine(
-            cli_feature_type=cli_map,
-            injector_feature_type=_noop_injectors_map,
+            feature_type=cli_map,
             argv=['nope'],
             seed_data={},
         )
@@ -235,8 +228,7 @@ def test_unknown_command_exits_nonzero(cli_map, capsys):
 
 async def test_async_engine_passes_seed_data_to_di(cli_map, capsys):
     await cli_dispatch_engine(
-        cli_feature_type=cli_map,
-        injector_feature_type=_noop_injectors_map,
+        feature_type=cli_map,
         argv=['ctx', 'suffix=!'],
         seed_data={_Ctx: _Ctx(name='xctx')},
     )
@@ -245,8 +237,7 @@ async def test_async_engine_passes_seed_data_to_di(cli_map, capsys):
 
 def test_sync_engine_passes_seed_data_to_di(cli_map, capsys):
     sync_cli_dispatch_engine(
-        cli_feature_type=cli_map,
-        injector_feature_type=_noop_injectors_map,
+        feature_type=cli_map,
         argv=['ctx', 'suffix=?'],
         seed_data={_Ctx: _Ctx(name='xctx')},
     )
@@ -276,14 +267,8 @@ async def test_post_cli_hook_runs_after_command(capsys):
         hook_called.append(True)
         print('hook ran')
 
-    def injectors_with_hook(feature, default):
-        if feature == 'post_cli_hook':
-            return my_hook
-        return default
-
     await cli_dispatch_engine(
-        cli_feature_type=_FakeCliMap({'cmd': my_command}),
-        injector_feature_type=injectors_with_hook,
+        feature_type=_FakeCliMap({'cmd': my_command, 'post_cli_hook': my_hook}),
         argv=['cmd'],
         seed_data={},
     )
@@ -300,8 +285,7 @@ async def test_no_post_cli_hook_is_fine(capsys):
         print('just the command')
 
     await cli_dispatch_engine(
-        cli_feature_type=_FakeCliMap({'cmd': my_command}),
-        injector_feature_type=_noop_injectors_map,
+        feature_type=_FakeCliMap({'cmd': my_command}),
         argv=['cmd'],
         seed_data={},
     )
@@ -320,14 +304,8 @@ def test_sync_post_cli_hook_runs_after_command(capsys):
         hook_called.append(True)
         print('hook ran')
 
-    def injectors_with_hook(feature, default):
-        if feature == 'post_cli_hook':
-            return my_hook
-        return default
-
     sync_cli_dispatch_engine(
-        cli_feature_type=_FakeCliMap({'cmd': my_command}),
-        injector_feature_type=injectors_with_hook,
+        feature_type=_FakeCliMap({'cmd': my_command, 'post_cli_hook': my_hook}),
         argv=['cmd'],
         seed_data={},
     )
@@ -345,8 +323,7 @@ def test_documented_entry_point_shape(tmp_path, capsys, monkeypatch):
 
     def cli_dispatch() -> None:
         asyncio.run(cli_dispatch_engine(
-            cli_feature_type=cli_map,
-            injector_feature_type=_noop_injectors_map,
+            feature_type=cli_map,
             argv=sys.argv[1:],
             seed_data={},
         ))
@@ -363,8 +340,7 @@ def test_documented_entry_point_shape(tmp_path, capsys, monkeypatch):
 async def test_the_same_engine_call_runs_inside_an_existing_loop(tmp_path, capsys):
     """No second asyncio.run, no nest_asyncio, no thread — the point of the async engine."""
     await cli_dispatch_engine(
-        cli_feature_type=_scanned_cli_map(tmp_path),
-        injector_feature_type=_noop_injectors_map,
+        feature_type=_scanned_cli_map(tmp_path),
         argv=['greet', 'name=Bob'],
         seed_data={},
     )

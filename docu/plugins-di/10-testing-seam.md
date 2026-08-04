@@ -21,18 +21,18 @@ cli_map = MyFakeMap({'greet': greet_fn})
 def injectors_map(name, default):
     return default          # no injectors: Inject[T] must come from seed_data
 
-# Production: both arguments are strings.
+# Production: feature_type is a string; injector type is derived.
 await cli_dispatch_engine(
-    cli_feature_type='cli',
-    injector_feature_type='cli_inject',
+    feature_type='cli',
     argv=argv,
     seed_data={},
 )
 
-# Test: both arguments are callables, through the seam.
+# Test: feature_type is a callable, through the seam.
+# The same callable serves as both the command map and the injectors map
+# (commands and injectors use different feature names, so they don't collide).
 await cli_dispatch_engine(
-    cli_feature_type=cli_map,
-    injector_feature_type=injectors_map,
+    feature_type=cli_map,
     argv=['greet', 'name=Alice'],
     seed_data={},
 )

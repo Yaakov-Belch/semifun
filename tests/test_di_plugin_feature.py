@@ -36,7 +36,7 @@ async def test_di_plugin_feature_calls_through(monkeypatch):
     )
     monkeypatch.setattr(
         'semifun.di.di_plugin_feature.get_injector',
-        lambda injector_type: FakeDI() if injector_type == 'my_injector' else None,
+        lambda injector_type: FakeDI() if injector_type == 'my_plugin_inject' else None,
     )
 
     result = await di_plugin_feature(
@@ -44,7 +44,6 @@ async def test_di_plugin_feature_calls_through(monkeypatch):
         feature='do_thing',
         args=(3, 4),
         kwargs={},
-        injector_type='my_injector',
         seed_data={FakeSeed: FakeSeed()},
     )
 

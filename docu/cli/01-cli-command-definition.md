@@ -18,8 +18,7 @@ from semifun.cli.dispatch import cli_dispatch_engine
 
 def semifun_cli():
     asyncio.run(cli_dispatch_engine(
-        cli_feature_type='cli',
-        injector_feature_type='cli_inject',
+        feature_type='cli',
         argv=sys.argv[1:],
         seed_data={},
     ))

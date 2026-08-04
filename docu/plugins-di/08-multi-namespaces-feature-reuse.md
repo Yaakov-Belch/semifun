@@ -10,7 +10,7 @@ share it directly:
 
 ```python
 # Option 1: two registrations on one function
-#::z_injector:UserName=get_user_name
+#::z_command_inject:UserName=get_user_name
 #::other_injector:UserName=get_user_name
 def get_user_name(*, zctx: Inject[ZCtx]) -> UserName:
     return UserName(zctx.user_name)

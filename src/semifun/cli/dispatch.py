@@ -26,15 +26,13 @@ from .cast import cast_args
 
 def semifun_cli():
     asyncio.run(cli_dispatch_engine(
-        cli_feature_type='cli',
-        injector_feature_type='cli_inject',
+        feature_type='cli',
         argv=sys.argv[1:],
         seed_data={},
     ))
 
 async def cli_dispatch_engine(
-    cli_feature_type: str,
-    injector_feature_type: str,
+    feature_type: str,
     argv: list[str],
     seed_data: dict,
 ):
@@ -44,17 +42,16 @@ async def cli_dispatch_engine(
     the standard engine; see `sync_cli_dispatch_engine` for the other path.
 
     Args:
-        cli_feature_type: Feature type for CLI commands (e.g., 'cli').
-        injector_feature_type: Feature type for DI injectors (e.g., 'cli_inject').
+        feature_type: Feature type for CLI commands (e.g., 'cli').
         argv: Command-line arguments, without the program name.
         seed_data: seed_data dict for DI; `{}` when there is none.
     """
-    resolved = _resolve(cli_feature_type, argv)
+    resolved = _resolve(feature_type, argv)
     if resolved is None:
         return
     fn, cast_positional, cast_kwargs = resolved
 
-    di = get_injector(injector_feature_type).with_seed_data(seed_data)
+    di = _get_di(feature_type).with_seed_data(seed_data)
 
     async def combined_context(*, ctx: Inject[AsyncExecutionContext]):
         await ctx.invoke_call_with_args(fn, args=cast_positional, kwargs=cast_kwargs)
@@ -66,8 +63,7 @@ async def cli_dispatch_engine(
 
 
 def sync_cli_dispatch_engine(
-    cli_feature_type: str,
-    injector_feature_type: str,
+    feature_type: str,
     argv: list[str],
     seed_data: dict,
 ):
@@ -78,12 +74,12 @@ def sync_cli_dispatch_engine(
     command cannot be awaited and so forces the dispatcher to be outermost.
     Prefer `cli_dispatch_engine`.
     """
-    resolved = _resolve(cli_feature_type, argv)
+    resolved = _resolve(feature_type, argv)
     if resolved is None:
         return
     fn, cast_positional, cast_kwargs = resolved
 
-    di = get_injector(injector_feature_type).with_seed_data(seed_data)
+    di = _get_di(feature_type).with_seed_data(seed_data)
 
     if getattr(fn, 'sync_function_owns_async_loop', False):
         def combined_context(*, ctx: Inject[SyncExecutionContext]):
@@ -101,13 +97,19 @@ def sync_cli_dispatch_engine(
         asyncio.run(di.async_call_with_args(fn=combined_context, args=(), kwargs={}))
 
 
-def _resolve(cli_feature_type: str, argv: list[str]):
+def _get_di(feature_type):
+    # testing seam: when feature_type is callable, it serves as the injectors map too
+    injector_type = feature_type if callable(feature_type) else feature_type + '_inject'
+    return get_injector(injector_type)
+
+
+def _resolve(feature_type: str, argv: list[str]):
     """Find the command and prepare its arguments — everything before the call.
 
     Returns (fn, args, kwargs), or None when help was printed instead.
     Exits with status 1 on an unknown command.
     """
-    cli_map = get_cached_feature_map(feature_type=cli_feature_type)
+    cli_map = get_cached_feature_map(feature_type=feature_type)
 
     if not argv or argv[0] == '--help':
         _print_help(cli_map)

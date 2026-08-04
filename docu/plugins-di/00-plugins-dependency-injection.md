@@ -9,6 +9,7 @@
 ```python
 # #::{namespace}:{feature_name} registers the python function/object of the same name in this file. Use ={alias} when names differ.
 # All #:: registrations are discovered at startup from installed packages (see [[feature_map:pyproject.toml:setup]]).
+# Injector namespace is always plugin_type + '_inject' — see [[injector-naming-convention]].
 
 from semifun.di.model import Inject
 from semifun.di.di_plugin_feature import di_plugin_feature
@@ -18,12 +19,12 @@ from semifun.di.di_plugin_feature import di_plugin_feature
 async def dispatch_z_command(zctx: ZCtx, command: str, *args, **kwargs) -> Any:
     return await di_plugin_feature(
         plugin_type='z_command', feature=command, args=args, kwargs=kwargs,
-        injector_type='z_injector', seed_data={ZCtx: zctx},
+        seed_data={ZCtx: zctx},
     )
 
 # --- Injectors: transform seed data into what features need ---
 
-#::z_injector:DbHandle=get_dbh
+#::z_command_inject:DbHandle=get_dbh
 def get_dbh(*, zctx: Inject[ZCtx]) -> DbHandle:
     return zctx.dbh
 
@@ -31,7 +32,7 @@ def get_dbh(*, zctx: Inject[ZCtx]) -> DbHandle:
 class UserName(str):
     pass
 
-#::z_injector:UserName=get_user_name
+#::z_command_inject:UserName=get_user_name
 def get_user_name(*, zctx: Inject[ZCtx]) -> UserName:
     return UserName(zctx.user_name)
 
