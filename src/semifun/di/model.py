@@ -3,6 +3,7 @@
 All structured data the library uses is represented as frozen dataclasses.
 """
 
+import inspect
 from dataclasses import dataclass
 from typing import Any, Callable, get_args, get_origin
 
@@ -19,6 +20,19 @@ def injected_type(annotation: Any) -> type | None:
         if len(args) == 1:
             return args[0]
     return None
+
+
+def signature_without_Inject(fn: Callable[..., Any]) -> inspect.Signature:
+    """Return ``fn``'s signature with ``Inject[…]`` parameters removed.
+
+    The returned signature contains only the parameters that a caller
+    supplies directly — the ones the DI framework fills in are dropped.
+    """
+    sig = inspect.signature(fn)
+    return sig.replace(parameters=[
+        p for p in sig.parameters.values()
+        if injected_type(p.annotation) is None
+    ])
 
 
 # Sentinel for "no default value" on PassThroughArg.

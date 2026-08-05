@@ -10,6 +10,7 @@ from semifun.di.model import (
     PassThroughArg,
     CallWithArgsSignature,
     MISSING,
+    signature_without_Inject,
 )
 
 
@@ -59,3 +60,33 @@ def test_call_with_args_signature_holds_both():
 
 def test_missing_repr():
     assert repr(MISSING) == "MISSING"
+
+
+# --- signature_without_Inject ---
+
+class TestSignatureWithoutInject:
+
+    def test_removes_injected_params(self):
+        def fn(*, name: str, ctx: Inject[object]): ...
+        sig = signature_without_Inject(fn)
+        assert list(sig.parameters.keys()) == ['name']
+
+    def test_keeps_all_when_no_inject(self):
+        def fn(*, x: int, y: str): ...
+        sig = signature_without_Inject(fn)
+        assert list(sig.parameters.keys()) == ['x', 'y']
+
+    def test_removes_all_when_all_injected(self):
+        def fn(*, a: Inject[int], b: Inject[str]): ...
+        sig = signature_without_Inject(fn)
+        assert list(sig.parameters.keys()) == []
+
+    def test_preserves_unannotated_params(self):
+        def fn(x, *, ctx: Inject[object]): ...
+        sig = signature_without_Inject(fn)
+        assert list(sig.parameters.keys()) == ['x']
+
+    def test_preserves_defaults(self):
+        def fn(*, name: str = 'world', ctx: Inject[object]): ...
+        sig = signature_without_Inject(fn)
+        assert sig.parameters['name'].default == 'world'
