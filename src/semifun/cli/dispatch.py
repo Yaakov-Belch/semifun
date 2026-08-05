@@ -16,7 +16,7 @@ import textwrap
 
 from semifun.plugins.registry import get_cached_feature_map
 
-from semifun.di.model import Inject, injected_type, signature_without_Inject
+from semifun.di.model import Inject, signature_without_Inject
 from semifun.di.async_execution_context import AsyncExecutionContext
 from semifun.di.sync_execution_context import SyncExecutionContext
 from semifun.di.registry_integration import get_injector
