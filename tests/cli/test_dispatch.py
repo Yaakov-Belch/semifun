@@ -337,6 +337,20 @@ def test_documented_entry_point_shape(tmp_path, capsys, monkeypatch):
     assert capsys.readouterr().out == 'Hello, Alice!\n'
 
 
+async def test_help_hides_injected_parameters(cli_map, capsys):
+    """Inject[T] parameters should not appear in the help signature."""
+    # The 'ctx' command has (ctx: Inject[_Ctx], suffix) — only suffix should show
+    await cli_dispatch_engine(
+        feature_type=cli_map,
+        argv=['ctx', '--help'],
+        seed_data={},
+    )
+    out = capsys.readouterr().out
+    assert 'suffix' in out
+    assert 'Inject' not in out
+    assert 'ctx:' not in out  # the parameter name 'ctx' shouldn't appear in the sig
+
+
 async def test_the_same_engine_call_runs_inside_an_existing_loop(tmp_path, capsys):
     """No second asyncio.run, no nest_asyncio, no thread — the point of the async engine."""
     await cli_dispatch_engine(
