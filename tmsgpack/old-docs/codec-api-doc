@@ -1,0 +1,51 @@
+class CodecAPI:
+    sort_keys: bool
+
+    # @abstractmethod
+    def prep_encode(self, value:Any, target:Any) -> Tuple[Any, 'CodecAPI', Any]:
+        """Determine actual codec for encoding and decoding."""
+        return [None, self, value]          # This uses the same codec.
+
+    # @abstractmethod
+    def decode_codec(self, codec_type:Any, source:Any) -> 'CodecAPI':
+        if codec_type is None: return self  # Allow to use the same codec.
+
+    # @abstractmethod
+    def decompose_value(self, value) -> Tuple[int, Any, Any]:
+        """
+        Extension/Hook: Define how to encode value.
+
+        returns: [_mode, _type, _new_value]
+            _mode=0:  Encode _new_value instead of value.
+            _mode=1:  Encode as typed bytes.
+            _mode=2:  Encode as typed tuple.
+            _mode=3:  Use _mode 4 or 5 depending on self.sort_keys
+            _mode=4:  Encode as typed dict with sorted keys
+            _mode=5:  Encode as typed dict with unsorted keys (python order)
+        """
+
+    # @abstractmethod
+    def value_from_bytes(self, obj_type, data: bytes):
+        """Extension/Hook: Define how to decode typed bytes."""
+
+    # @abstractmethod
+    def value_from_list(self, obj_type, values: list) -> Any:
+        """Extension/Hook: Define how to decode typed tuples / dicts."""
+
+    # @abstractmethod
+    def encode(self, value, target=None):
+        """Encode value to msg.  Provided by the EncodeDecode mixin."""
+
+    # @abstractmethod
+    def ebuf_put_value(self, ebuf, value):
+        """Add encoded value to EncodeBuffer ebuf. Provided by the EncodeDecode mixin."""
+
+    # @abstractmethod
+    def decode(self, msg, source=None):
+        """Decode msg to value.  Provided by the EncodeDecode mixin."""
+
+    # @abstractmethod
+    def dbuf_take_value(self, dbuf):
+        """Take one msg from DecodeBuffer dbuf. Provided by the EncodeDecode mixin."""
+
+

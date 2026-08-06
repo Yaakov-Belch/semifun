@@ -1,0 +1,35 @@
+The tmsgpack format definition:
+
+The first byte is an opcode:
+count   range meaning
+  129   0-129 ConstInt=0 ... ConstInt=128
+    3 129-132 FixInt2(16) FixInt4(32) FixInt8(64)
+    1 132-133 FixFloat8(64)
+   16 133-149 FixStr0 ... FixStr15
+    3 149-152 VarStr1(8) VarStr2(16) VarStr8(64)
+    8 152-160 FixBytes0/1/2/4/8/16/20/32
+    3 160-163 VarBytes1(8) VarBytes2(16) VarBytes8(64)
+   17 163-180 FixTuple0 ... FixTuple16
+    3 180-183 VarTuple1(8) VarTuple2(16) VarTuple8(64)
+    3 183-186 ConstVal=True ConstVal=False ConstVal=None
+    6 186-192 Not used yet.
+   64 192-256 ConstInt=-64 ... ConstInt=-1
+
+Explanations:
+Const*         just one byte opcode.
+FixInt2(16):   followed by                                            2 bytes: int.
+FixStr2:       followed by                                            2 characters.
+VarStr2(16):   followed by 2 length bytes (16 bits)               and n characters.
+FixBytes2:     followed by                           a TYPE VALUE and 2 bytes.
+VarBytes2(16): followed by 2 length bytes (16 bits), a TYPE VALUE and n bytes.
+FixTuple2:     followed by                           a TYPE VALUE and 2 tuple values.
+VarTuple2(16): followed by 2 length bytes (16 bits), a TYPE VALUE and n tuple values.
+
+* All numbers (integers, floats) are LITTLE-ENDIAN -- NOT network byte order.
+* Numbers (int, float) are signed; String and tuple length are unsigned integers.
+* There is no FixInt1(8) because the majority of values are covered as opcodes.
+  FixInt2(16) is just one more byte.
+* There is no VarStr4(32) because VarStr8(64) covers the range.  There are at least
+  65535 characters, so the difference of four bytes is negligible.
+* FixBytes cover popular binary data sizes.  Others are covered by VarBytes1.
+* Ranges are inclusive-exclusive (like all ranges in Python).
