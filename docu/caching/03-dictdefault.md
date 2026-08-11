@@ -1,40 +1,34 @@
 [[dictdefault]]
-# `dictdefault`: get-or-create for plain dicts, in four variants
+# `dictdefault`: "defaultdict on plain dicts", sync/async and key support
 
-* Four variants of get-or-create for plain dicts (sync/async × with/without key).
-* An alternative to `defaultdict` with explicit control.
-* Async variants store a task, so the computation runs exactly once under concurrency.
-* A failure is cached by the async variants and not by the sync ones.
+* Choose: sync/async
+* Choose: Constructor may or may not receive the key
+* Design details
 
 
 ```python
 from semifun_caching.dictdefault import dictdefault
+sync_cache = {}; async_cache = {}   # sync/async: incompatible cache formats
 
 # Sync, factory receives no arguments:
-value = dictdefault(cache, 'key', lambda: compute())
+value = dictdefault(sync_cache, 'key', lambda: compute())
 
 # Sync, factory receives the key:
-value = dictdefault.k(cache, 'key', lambda k: compute(k))
+value = dictdefault.k(sync_cache, 'key', lambda k: compute(k))
 
 # Async, factory receives no arguments:
-value = await dictdefault.a(cache, 'key', lambda: async_compute())
+value = await dictdefault.a(async_cache, 'key', lambda: async_compute())
 
 # Async, factory receives the key:
-value = await dictdefault.ak(cache, 'key', lambda k: async_compute(k))
+value = await dictdefault.ak(async_cache, 'key', lambda k: async_compute(k))
 ```
 
-## A failed computation
+## Design details
 
-The sync variants assign the result, so a factory that raises leaves the cache
-untouched and the next call recomputes.
-
-The async variants store the *task* before it runs, and a failed task keeps its
-exception.  The failure is therefore cached: every later caller awaits the same
-task and gets the same exception, and the factory is never called again.
-
-```python
-await dictdefault.a(cache, 'key', failing)   # raises, and stores the failure
-await dictdefault.a(cache, 'key', failing)   # raises again, without calling it
-```
-
-To retry, drop the key.
+* Multiple async requests for the same key while the first computation runs await the same result.  Computed only once.
+* Computation loops:
+  - Sync: `RecursionError` (standard Python recursion limit).
+  - Async: `ValueError('Deadlock: ...')` (cycle detected via parent-task chain).
+* Exceptions raised by the factory:
+  - Sync: cache untouched, next call recomputes.
+  - Async: failure is cached (task stores the exception), every later caller gets the same exception.  To retry, delete the key.
