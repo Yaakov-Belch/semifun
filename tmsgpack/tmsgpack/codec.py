@@ -30,18 +30,13 @@ class TmsgpackCodec(EncodeDecode):
     sort_keys: bool
     di: DependencyInjectorProtocol
     # Memoization only: init=False keeps them out of the constructor.
-    # `replace()` would re-run default_factory and silently drop them.
-    # So with_seed_data re-attaches them explicitly --
-    # the same pattern as DependencyInjector._call_with_args_sig_cache.
+    # `replace()` re-runs default_factory, giving each derived codec fresh caches.
     encoder_cache: dict = field(default_factory=dict, init=False, repr=False)
     decoder_cache: dict = field(default_factory=dict, init=False, repr=False)
     plugin_feature_type: str
 
     def with_seed_data(self, seed_data):
-        new = replace(self, di=self.di.with_seed_data(seed_data))
-        object.__setattr__(new, 'encoder_cache', self.encoder_cache)
-        object.__setattr__(new, 'decoder_cache', self.decoder_cache)
-        return new
+        return replace(self, di=self.di.with_seed_data(seed_data))
 
     def prep_encode(self, value, target): return [None, self, value]
 
