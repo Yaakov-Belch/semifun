@@ -5,11 +5,7 @@
 * Case study: Domain specific output:
   * Our MCP framework responds to the caller with `respond(...)`, not with `print`.
   * Our CLI scripts want to use shared functions -- we need to support `respond`.
-
-* Note how the `#::cli_inject:ReqReply` connects to the **constructor function** of
-  the dataclass `ReqReply`.
-* Dependency injection caching provides the same ReqReply instance for every
-  `Inject[ReqReply]` case.
+  * Refer to [[plugins-dependency-injection]] for details about dependency injection.
 
 ```python
 from dataclasses import dataclass, field
@@ -40,4 +36,3 @@ async def return_book(isbn, *, dbh: Inject[DbHandle], reply: Inject[ReqReply]):
     await dbh.checkin(isbn)
     reply.respond(f'{isbn}: checked in')
 ```
-
