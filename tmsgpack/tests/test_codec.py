@@ -154,13 +154,13 @@ def test_with_seed_data_round_trip(codec):
     assert decoded.dbh is other_dbh
 
 
-# --- Encoder/decoder caches are shared after with_seed_data ---
+# --- with_seed_data produces independent caches ---
 
-def test_with_seed_data_shares_caches(codec):
+def test_with_seed_data_has_independent_caches(codec):
     codec, t = codec
     codec2 = codec.with_seed_data({t.Dbh: t.Dbh()})
-    assert codec2.encoder_cache is codec.encoder_cache
-    assert codec2.decoder_cache is codec.decoder_cache
+    assert codec2.encoder_cache is not codec.encoder_cache
+    assert codec2.decoder_cache is not codec.decoder_cache
 
 
 # --- Inject[T] without a DependencyInjector ---

@@ -5,6 +5,7 @@ from semifun.caching.cached_property import cached_property
 
 import enum
 from .api import EncodeDecode
+from .codec_special import TmsgpackSpecial, make_codec_handler_special
 
 
 class DependencyInjectorProtocol(Protocol):
@@ -64,7 +65,13 @@ class TmsgpackCodec(EncodeDecode):
         return codec_handler.decode_dctx(dctx=dctx)
 
     def decode_from_bytes(self, dctx):
-        raise NotImplementedError(f'No bytes extension defined: {dctx._type}')
+        type_name = dctx._type
+        if type_name not in self.decoder_cache:
+            codec_spec = self.type_name_to_codec_spec(type_name=type_name)
+            codec_handler = self.codec_spec_to_codec_handler(codec_spec=codec_spec, type_name=type_name)
+            self.decoder_cache[type_name] = codec_handler
+        codec_handler = self.decoder_cache[type_name]
+        return codec_handler.decode_dctx(dctx=dctx)
 
     @cached_property
     def feature_map(self):
@@ -80,6 +87,8 @@ class TmsgpackCodec(EncodeDecode):
     def codec_spec_to_codec_handler(self, codec_spec, type_name):
         if isinstance(codec_spec, enum.EnumType):
             return CodecHandler(type_name=type_name, attributes=('value',), constructor=codec_spec)
+        if isinstance(codec_spec, type) and issubclass(codec_spec, TmsgpackSpecial):
+            return make_codec_handler_special(codec_spec=codec_spec, type_name=type_name, di=self.di)
         if is_dataclass(codec_spec):
             all_fields = fields(codec_spec)
             injected_type = self.di.injected_type
