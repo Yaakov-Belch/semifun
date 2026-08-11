@@ -14,7 +14,7 @@ async def outer(*, ctx: Inject[AsyncExecutionContext], zctx: Inject[ZCtx]):
     result = await ctx.invoke_call_with_args(inner_fn, args=(), kwargs={})
 ```
 
-For sync functions, use `SyncExecutionContext` with `invoke_call_with_args` (not awaited):
+When the top-level DI call is sync, use `SyncExecutionContext` with `invoke_call_with_args` (not awaited):
 
 ```python
 from semifun.di.sync_execution_context import SyncExecutionContext
