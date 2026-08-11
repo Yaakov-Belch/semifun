@@ -39,11 +39,9 @@ class AsyncExecutionContext:
     lock: set[Any] = field(default_factory=set, init=False)
 
     def __post_init__(self) -> None:
-        # Shallow copy of seed_data, plus auto-seed DependencyInjector for re-entrant DI access.
-        from .injector import DependencyInjector
+        # Shallow copy of seed_data, plus auto-seed the execution context itself.
         object.__setattr__(self, 'cache', {
             **self.injector.seed_data,
-            DependencyInjector: self.injector,
             AsyncExecutionContext: self,
         })
 
