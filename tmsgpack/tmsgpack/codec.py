@@ -5,7 +5,7 @@ from semifun.caching.cached_property import cached_property
 
 import enum
 from .api import EncodeDecode
-from .codec_special import TmsgpackSpecial, make_codec_handler_special
+from .codec_custom import TmsgpackCustom, make_codec_handler_custom
 
 
 class DependencyInjectorProtocol(Protocol):
@@ -87,8 +87,8 @@ class TmsgpackCodec(EncodeDecode):
     def codec_spec_to_codec_handler(self, codec_spec, type_name):
         if isinstance(codec_spec, enum.EnumType):
             return CodecHandler(type_name=type_name, attributes=('value',), constructor=codec_spec)
-        if isinstance(codec_spec, type) and issubclass(codec_spec, TmsgpackSpecial):
-            return make_codec_handler_special(codec_spec=codec_spec, type_name=type_name, di=self.di)
+        if isinstance(codec_spec, type) and issubclass(codec_spec, TmsgpackCustom):
+            return make_codec_handler_custom(codec_spec=codec_spec, type_name=type_name, di=self.di)
         if is_dataclass(codec_spec):
             all_fields = fields(codec_spec)
             injected_type = self.di.injected_type

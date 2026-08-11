@@ -4,7 +4,7 @@ from dataclasses import dataclass
 _MODES = ('dict', 'list', 'bytes')
 
 
-class TmsgpackSpecial:
+class TmsgpackCustom:
     """Base class for custom tmsgpack codec handlers.
 
     Subclass and define exactly one encode/decode pair:
@@ -13,14 +13,14 @@ class TmsgpackSpecial:
         encode_bytes / decode_bytes — wire format is raw bytes
 
     Example (dict mode):
-        class CodecBar(TmsgpackSpecial):
+        class CodecBar(TmsgpackCustom):
             def encode_dict(obj):
                 return {'x': obj.x, 'y': obj.y}
             def decode_dict(*, x, y):
                 return Bar(x=x, y=y)
 
     Example (bytes mode):
-        class CodecPoint(TmsgpackSpecial):
+        class CodecPoint(TmsgpackCustom):
             def encode_bytes(obj):
                 return struct.pack('ff', obj.x, obj.y)
             def decode_bytes(data):
@@ -28,7 +28,7 @@ class TmsgpackSpecial:
                 return Point(x, y)
 
     Dependency injection on encode or decode:
-        class CodecBig(TmsgpackSpecial):
+        class CodecBig(TmsgpackCustom):
             def encode_dict(obj, store: Inject[BlobStore]):
                 blob_id = store.put(obj.data)
                 return {'id': blob_id, 'name': obj.name}
@@ -68,7 +68,7 @@ def _has_injected(fn, di):
 
 
 @dataclass(frozen=True)
-class CodecHandlerSpecial:
+class CodecHandlerCustom:
     type_name: str
     encode_fn: object
     decode_fn: object
@@ -107,14 +107,14 @@ class CodecHandlerSpecial:
             return self.decode_fn(data)
 
 
-def make_codec_handler_special(codec_spec, type_name, di):
-    """Create a CodecHandlerSpecial from a TmsgpackSpecial subclass."""
+def make_codec_handler_custom(codec_spec, type_name, di):
+    """Create a CodecHandlerCustom from a TmsgpackCustom subclass."""
     for mode in _MODES:
         if hasattr(codec_spec, f'encode_{mode}'):
             break
     encode_fn = getattr(codec_spec, f'encode_{mode}')
     decode_fn = getattr(codec_spec, f'decode_{mode}')
-    return CodecHandlerSpecial(
+    return CodecHandlerCustom(
         type_name=type_name,
         encode_fn=encode_fn,
         decode_fn=decode_fn,
