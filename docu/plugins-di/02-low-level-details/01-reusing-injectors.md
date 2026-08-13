@@ -1,3 +1,4 @@
+[[:reuse-injectors]]
 # Reuse injectors
 
 Put multiple `#::` comments on one function, or register an import.
