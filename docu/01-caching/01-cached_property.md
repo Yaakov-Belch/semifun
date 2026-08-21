@@ -6,7 +6,7 @@
 
 
 ```python
-from semifun_caching.cached_property import cached_property
+from semifun.caching.cached_property import cached_property
 
 @dataclass(frozen=True)
 class Service:

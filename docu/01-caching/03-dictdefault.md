@@ -7,7 +7,7 @@
 
 
 ```python
-from semifun_caching.dictdefault import dictdefault
+from semifun.caching.dictdefault import dictdefault
 sync_cache = {}; async_cache = {}   # sync/async: incompatible cache formats
 
 # Sync, factory receives no arguments:

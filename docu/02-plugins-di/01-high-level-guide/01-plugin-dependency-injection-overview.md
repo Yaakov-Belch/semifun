@@ -19,7 +19,9 @@ powerful use patterns out-of-the-box:
   that can be provided by `args`, `kwargs` or injected -- see `DbHandle` below.
 * When you want to inject basic python values (`str`, `dict`, `list`), wrap them into
   a named type (see `UserId` and `MyPosts` below).
-
+  - Seed data maps types to values.  The type is a **lookup key**, not a constraint.
+    Always pass the raw value: `seed_data = {UserId: user_id}` — never wrap it
+    (`{UserId: UserId(user_id)}`).
 
 ```python
 # #::{namespace}:{feature_name} registers the python function/object of the same name
@@ -42,7 +44,7 @@ async def dispatch_command(db_client: MongoClient, user_id: str,
     # cannot be found.
     return await di_plugin_feature(
         plugin_type='z_command', feature=command, args=args, kwargs=kwargs,
-        seed_data={MongoClient: db_client, UserId: UserId(user_id)},
+        seed_data={MongoClient: db_client, UserId: user_id},
     )
 
 # --- Injectors: transform seed data into what features need (recursive, cached) ---
@@ -70,7 +72,7 @@ async def get_MyPosts(*, dbh: Inject[DbHandle]) -> MyPosts:
 # --- Features: business logic with injected dependencies ---
 
 #::z_command:show_my_posts
-async def show_my_posts(start=0, count=10, *, my_posts: Inject[MyPosts]) -> list:
+async def show_my_posts(start, count, *, my_posts: Inject[MyPosts]) -> list:
     return my_posts[start:start+count]
 
 #::z_command:save_new_post

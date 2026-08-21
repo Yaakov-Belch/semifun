@@ -13,7 +13,7 @@
 from semifun.di.model import Inject
 
 #::cli:overdue
-def overdue(due_date:str, copies: int = 1, patron_type: str='student'):
+def overdue(due_date:str, copies: int, patron_type: str):
     """Calculate the overdue fine for a late return."""
     fine = OVERDUE_RATE[patron_type] * (date.today() - parse(due_date)).days * copies
     print(f'The overdue fine is: {fine:.2f}$')

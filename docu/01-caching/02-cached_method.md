@@ -6,7 +6,7 @@
 
 
 ```python
-from semifun_caching.cached_method import cached_method
+from semifun.caching.cached_method import cached_method
 from tmsgpack.codec import NoDependencyInjector, TmsgpackCodec
 
 @dataclass(frozen=True)
@@ -14,7 +14,7 @@ class Repo:
     cache_codec: TmsgpackCodec
 
     @cached_method
-    async def get_page(self, collection: str, page: int = 0, limit: int = 10) -> list:
+    async def get_page(self, collection: str, page: int, limit: int) -> list:
         return await self.db.find(collection, skip=page * limit, limit=limit)
 
 codec = TmsgpackCodec(sort_keys=True, di=NoDependencyInjector(), plugin_feature_type='tmsgpack_codec')
