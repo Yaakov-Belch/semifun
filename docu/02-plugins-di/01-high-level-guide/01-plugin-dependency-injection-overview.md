@@ -17,11 +17,8 @@ powerful use patterns out-of-the-box:
 * When a plugin or an injector just creates a dataclass instance, consider registering the
   dataclass itself -- the constructor is a function.  Attributes are constructor arguments
   that can be provided by `args`, `kwargs` or injected -- see `DbHandle` below.
-* When you want to inject basic python values (`str`, `dict`, `list`), wrap them into
-  a named type (see `UserId` and `MyPosts` below).
-  - Seed data maps types to values.  The type is a **lookup key**, not a constraint.
-    Always pass the raw value: `seed_data = {UserId: user_id}` — never wrap it
-    (`{UserId: UserId(user_id)}`).
+* When you want to inject basic python values (`str`, `dict`, `list`), define a
+  `type` alias as a named lookup key (see `UserId` and `MyPosts` below).
 
 ```python
 # #::{namespace}:{feature_name} registers the python function/object of the same name
@@ -30,9 +27,9 @@ powerful use patterns out-of-the-box:
 from semifun.di.model import Inject
 from semifun.di.di_plugin_feature import di_plugin_feature
 
-# --- Wrap built-in types so DI can distinguish them ---
+# --- Type aliases as named DI keys ---
 
-class UserId(str): pass
+type UserId = str | None
 
 # --- Application: dispatch a command with dependency injection ---
 
@@ -64,9 +61,9 @@ class DbHandle:
 
 
 #::z_command_inject:MyPosts=get_MyPosts
-class MyPosts(list): pass
-async def get_MyPosts(*, dbh: Inject[DbHandle]) -> MyPosts:
-    return MyPosts(await dbh.find({'document_type': 'blog_post'}))
+type MyPosts = list[dict]
+async def get_MyPosts(*, dbh: Inject[DbHandle]) -> list[dict]:
+    return await dbh.find({'document_type': 'blog_post'})
 
 
 # --- Features: business logic with injected dependencies ---

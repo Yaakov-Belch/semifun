@@ -44,7 +44,7 @@ feature = 'show_my_posts'
 fn = feature_map(feature=feature, default=None)   # Undefined feature: return None
 fn = feature_map(feature=feature)                 # Undefined feature: raise exception
 
-seed_data = {MongoClient: db_client, UserId: UserId(user_id)}
+seed_data = {MongoClient: db_client, UserId: user_id}
 injector_type = plugin_type + '_inject'
 
 di = get_injector(injector_type)
