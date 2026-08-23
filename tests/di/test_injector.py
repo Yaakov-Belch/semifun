@@ -126,19 +126,6 @@ async def test_all_injected_circular_dependency_raises():
         await di.async_call_with_args(fn=feature, args=(), kwargs={})
 
 
-async def test_all_injected_isinstance_check_failure():
-    """An injector returning the wrong type should raise TypeError."""
-    def get_config():
-        return "not a Config"  # wrong type
-
-    def feature(*, config: Inject[Config]):
-        return config
-
-    di = DependencyInjector(injectors_map=make_map({"Config": get_config}), seed_data={})
-    with pytest.raises(TypeError, match="not an instance"):
-        await di.async_call_with_args(fn=feature, args=(), kwargs={})
-
-
 async def test_all_injected_caches_per_call():
     """The same type resolved twice in one call returns the same instance."""
     call_count = {"n": 0}

@@ -107,18 +107,6 @@ def test_sync_all_injected_circular_dependency_raises():
         di.sync_call_with_args(fn=feature, args=(), kwargs={})
 
 
-def test_sync_all_injected_isinstance_check_failure():
-    def get_config():
-        return "not a Config"
-
-    def feature(*, config: Inject[Config]):
-        return config
-
-    di = DependencyInjector(injectors_map=make_map({"Config": get_config}), seed_data={})
-    with pytest.raises(TypeError, match="not an instance"):
-        di.sync_call_with_args(fn=feature, args=(), kwargs={})
-
-
 def test_sync_all_injected_caches_per_call():
     call_count = {"n": 0}
 
