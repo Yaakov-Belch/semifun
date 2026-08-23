@@ -53,7 +53,7 @@ class AsyncExecutionContext:
         Order:
         1. Cache hit → return cached value.
         2. No cache and no injector → raise.
-        3. Otherwise call the injector recursively, isinstance-check, cache, return.
+        3. Otherwise call the injector recursively, cache, return.
         """
         if arg.type in self.cache:
             return self.cache[arg.type]
@@ -64,12 +64,6 @@ class AsyncExecutionContext:
                 f"is registered for that type name."
             )
         value = await self.invoke_call_with_args(arg.injector_fn, args=(), kwargs={})
-        if not isinstance(value, arg.type):
-            raise TypeError(
-                f"Injector for {arg.type.__name__!r} returned a value of type "
-                f"{type(value).__name__!r} which is not an instance of "
-                f"{arg.type.__name__!r}."
-            )
         self.cache[arg.type] = value
         return value
 
