@@ -61,6 +61,7 @@ async def _dispatch(tmp_path, argv, capsys):
         feature_type=_scanned_cli_map(tmp_path),
         argv=argv,
         seed_data={},
+        help_output=print,
     )
     return capsys.readouterr().out
 
@@ -156,6 +157,7 @@ async def test_async_engine_awaits_in_the_callers_loop(cli_map, capsys):
         feature_type=cli_map,
         argv=['agreet', 'name=Alice'],
         seed_data={},
+        help_output=print,
     )
     assert capsys.readouterr().out == 'Hello, Alice!\n'
 
@@ -165,6 +167,7 @@ async def test_async_engine_prints_help_for_empty_argv(cli_map, capsys):
         feature_type=cli_map,
         argv=[],
         seed_data={},
+        help_output=print,
     )
     assert 'Available commands:' in capsys.readouterr().out
 
@@ -175,6 +178,7 @@ async def test_unknown_command_exits_nonzero(cli_map, capsys):
             feature_type=cli_map,
             argv=['nope'],
             seed_data={},
+            help_output=print,
         )
     assert exc.value.code == 1
     assert 'Unknown command: nope' in capsys.readouterr().out
@@ -185,6 +189,7 @@ async def test_async_engine_passes_seed_data_to_di(cli_map, capsys):
         feature_type=cli_map,
         argv=['ctx', 'suffix=!'],
         seed_data={_Ctx: _Ctx(name='xctx')},
+        help_output=print,
     )
     assert capsys.readouterr().out == 'xctx!\n'
 
@@ -216,6 +221,7 @@ async def test_post_cli_hook_runs_after_command(capsys):
         feature_type=_FakeCliMap({'cmd': my_command, 'post_cli_hook': my_hook}),
         argv=['cmd'],
         seed_data={},
+        help_output=print,
     )
     out = capsys.readouterr().out
     assert 'command ran' in out
@@ -233,6 +239,7 @@ async def test_no_post_cli_hook_is_fine(capsys):
         feature_type=_FakeCliMap({'cmd': my_command}),
         argv=['cmd'],
         seed_data={},
+        help_output=print,
     )
     assert capsys.readouterr().out == 'just the command\n'
 
@@ -248,6 +255,7 @@ def test_documented_entry_point_shape(tmp_path, capsys, monkeypatch):
             feature_type=cli_map,
             argv=sys.argv[1:],
             seed_data={},
+            help_output=print,
         ))
 
     monkeypatch.setattr(sys, 'argv', ['my-app', 'greet', 'name=Alice'])
@@ -266,6 +274,7 @@ async def test_help_hides_injected_parameters(cli_map, capsys):
         feature_type=cli_map,
         argv=['ctx', '--help'],
         seed_data={},
+        help_output=print,
     )
     out = capsys.readouterr().out
     assert 'suffix' in out
@@ -279,5 +288,6 @@ async def test_the_same_engine_call_runs_inside_an_existing_loop(tmp_path, capsy
         feature_type=_scanned_cli_map(tmp_path),
         argv=['greet', 'name=Bob'],
         seed_data={},
+        help_output=print,
     )
     assert capsys.readouterr().out == 'Hello, Bob!\n'
