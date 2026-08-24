@@ -2,11 +2,6 @@
 
 This module composes the pieces (argv splitting, type casting, DI invocation)
 into a complete CLI dispatcher.
-
-Two engines are exposed:
-
-* `cli_dispatch_engine` — async, awaits in the caller's loop.  The standard.
-* `sync_cli_dispatch_engine` — sync, for commands that must own the loop.
 """
 
 import asyncio
@@ -18,7 +13,6 @@ from semifun.plugins.registry import get_cached_feature_map
 
 from semifun.di.model import Inject, signature_without_Inject
 from semifun.di.async_execution_context import AsyncExecutionContext
-from semifun.di.sync_execution_context import SyncExecutionContext
 from semifun.di.registry_integration import get_injector
 
 from .argv import split_argv
@@ -35,11 +29,11 @@ async def cli_dispatch_engine(
     feature_type: str,
     argv: list[str],
     seed_data: dict,
+    help_output: callable,
 ):
     """Discover and run a CLI command with DI and type-cast arguments.
 
-    Runs inside the caller's event loop — it does not create one.  This is
-    the standard engine; see `sync_cli_dispatch_engine` for the other path.
+    Runs inside the caller's event loop — it does not create one.
 
     Args:
         feature_type: Feature type for CLI commands (e.g., 'cli').
@@ -61,40 +55,6 @@ async def cli_dispatch_engine(
 
     await di.async_call_with_args(fn=combined_context, args=(), kwargs={})
 
-
-def sync_cli_dispatch_engine(
-    feature_type: str,
-    argv: list[str],
-    seed_data: dict,
-):
-    """Same as `cli_dispatch_engine`, but owns the event loop.
-
-    Use this only when a command function is itself sync and
-    starts its own loop (marked `@sync_function_owns_async_loop`); such a
-    command cannot be awaited and so forces the dispatcher to be outermost.
-    Prefer `cli_dispatch_engine`.
-    """
-    resolved = _resolve(feature_type, argv)
-    if resolved is None:
-        return
-    fn, cast_positional, cast_kwargs = resolved
-
-    di = _get_di(feature_type).with_seed_data(seed_data)
-
-    if getattr(fn, 'sync_function_owns_async_loop', False):
-        def combined_context(*, ctx: Inject[SyncExecutionContext]):
-            ctx.invoke_call_with_args(fn, args=cast_positional, kwargs=cast_kwargs)
-            if post_cli_hook := di.injectors_map(feature='post_cli_hook', default=None):
-                ctx.invoke_call_with_args(post_cli_hook, args=(), kwargs={})
-
-        di.sync_call_with_args(fn=combined_context, args=(), kwargs={})
-    else:
-        async def combined_context(*, ctx: Inject[AsyncExecutionContext]):
-            await ctx.invoke_call_with_args(fn, args=cast_positional, kwargs=cast_kwargs)
-            if post_cli_hook := di.injectors_map(feature='post_cli_hook', default=None):
-                await ctx.invoke_call_with_args(post_cli_hook, args=(), kwargs={})
-
-        asyncio.run(di.async_call_with_args(fn=combined_context, args=(), kwargs={}))
 
 
 def _get_di(feature_type):
