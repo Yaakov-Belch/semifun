@@ -1,13 +1,14 @@
-[[cached-async-function]]
-# cached_async_function: cache a standalone async function by arguments
+[[:cached_function]]
+# cached_function: cache a standalone async function by arguments
 
+* Sync and async functions `fn` are supported.
 * Callable repeatedly — same `fn` + same `fn_cache` returns the same wrapper
 * Two caches: `fn_cache` (wrapper identity), `result_cache` (computation results)
 * Design details
 
 
 ```python
-from semifun.caching.cached_function import cached_async_function
+from semifun.caching.cached_function import cached_function
 from tmsgpack.api import basic_codec
 
 fn_cache = {}
@@ -17,7 +18,7 @@ async def compute_tree_spec(query, config, user_data):
     ...  # expensive or stateful computation
 
 # Can be called repeatedly — returns the same wrapper from fn_cache:
-cached_fn = cached_async_function(
+cached_fn = cached_function(
     fn=compute_tree_spec,
     fn_cache=fn_cache, result_cache=result_cache, cache_codec=basic_codec,
 )
@@ -31,7 +32,7 @@ spec4 = await cached_fn('[[specs]]', changed_cfg, ud) # different config, comput
 ## Design details
 
 * `fn_cache` caches the wrapper function itself, keyed by `fn`.
-  `cached_async_function(fn, fn_cache, ...)` can be called on every request —
+  `cached_function(fn, fn_cache, ...)` can be called on every request —
   `dictdefault(fn_cache, fn, wrap_fn)` returns the same wrapper each time.
 * `result_cache` caches computation results, keyed by argument hash.
   `dictdefault.a(result_cache, key, ...)` handles async dedup — concurrent calls
