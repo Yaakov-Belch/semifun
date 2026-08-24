@@ -40,4 +40,5 @@ spec4 = await cached_fn('[[specs]]', changed_cfg, ud) # different config, comput
 * Cache keyed by `cache_codec.hash_to_bytes(bound_args)`.
   - Arguments are bound to the signature with defaults applied before hashing.
   - Equivalent arguments compute the same hash key.
-* Async only (no sync variant).
+* Sync and async functions are both supported.  The wrapper is always async —
+  if `fn` returns a non-awaitable, it is returned directly.
