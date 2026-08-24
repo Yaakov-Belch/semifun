@@ -32,7 +32,7 @@ $ library return 978-0-13-468599-1
 $ library overdue --help        # overdue's signature and docstring
 $ library --help                # every command's signature and docstring
 $ library                       # the same as: library --help
-$ library bogus                 # error, the same listing, exit status 1
+$ library bogus                 # error, the same listing
 ```
 
 
@@ -58,7 +58,9 @@ def semifun_cli():
     asyncio.run(cli_dispatch_engine(
         feature_type='cli',
         argv=sys.argv[1:],
+        extra_kwargs=None,
         seed_data={},
+        help_output=print,
     ))
 ```
 

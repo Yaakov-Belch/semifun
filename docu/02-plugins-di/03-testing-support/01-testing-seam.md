@@ -7,13 +7,15 @@ Pass a callable where a `plugin_type` string goes. The callable is used as the f
 cli_map = MyFakeMap({'greet': greet_fn})
 
 # Production: plugin_type is a string
-await cli_dispatch_engine(feature_type='cli', argv=argv, seed_data={})
+await cli_dispatch_engine(feature_type='cli', argv=argv, extra_kwargs=None, seed_data={}, help_output=print)
 
 # Test: plugin_type is a callable — used as the feature map directly
 await cli_dispatch_engine(
     feature_type=cli_map,
     argv=['greet', 'name=Alice'],
+    extra_kwargs=None,
     seed_data={},
+    help_output=print,
 )
 ```
 
