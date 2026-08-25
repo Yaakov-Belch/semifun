@@ -58,10 +58,11 @@ class SyncExecutionContext:
         if arg.type in self.cache:
             return self.cache[arg.type]
         if arg.injector_fn is None:
+            feature_type = getattr(self.injector, 'feature_type', 'unknown')
             raise LookupError(
                 f"Cannot resolve injection for parameter {arg.name!r}: "
                 f"type {arg.type.__name__!r} is not in seed_data and no injector "
-                f"is registered for that type name."
+                f"is registered for that type name. ({feature_type=})"
             )
         value = self.invoke_call_with_args(arg.injector_fn, args=(), kwargs={})
         self.cache[arg.type] = value

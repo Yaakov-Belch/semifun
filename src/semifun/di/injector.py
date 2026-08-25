@@ -33,6 +33,7 @@ class DependencyInjector:
     `injectors_map(name, default=...)` is the lookup function returned by the
     feature plugins registry's `get_cached_feature_map`. The DI library does
     not depend on the registry directly — any callable with that signature works.
+    If `injectors_map.feature_type` exists, it is used in error messages.
 
     `seed_data` maps types to pre-resolved values. Use `with_seed_data` to
     create a copy with additional or overridden seed values; signature caches
