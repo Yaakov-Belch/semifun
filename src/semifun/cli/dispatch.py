@@ -18,14 +18,12 @@ from semifun.di.registry_integration import get_injector
 from .argv import split_argv
 from .cast import cast_args
 
-type CliMainFunction = callable
-
 def semifun_cli():
     asyncio.run(cli_dispatch_engine(
         feature_type='cli',
         argv=sys.argv[1:],
         extra_kwargs=None,
-        seed_data={CliMainFunction:True}, # Will be replaced.
+        seed_data={},
         help_output=print,
     ))
 
@@ -48,7 +46,6 @@ async def cli_dispatch_engine(
         seed_data: seed_data dict for DI; `{}` when there is none.
         help_output: callable for printing help text (e.g. `print`).
 
-    When `seed_data` contains the key `CliMainFunction`, the value will be set.
     """
     cli_map = get_cached_feature_map(feature_type=feature_type)
 
@@ -73,9 +70,6 @@ async def cli_dispatch_engine(
         return
 
     # --- Command execution ---
-
-    if CliMainFunction in seed_data:
-        seed_data = {**seed_data, CliMainFunction: fn}
 
     str_args, str_kwargs = split_argv(command_argv)
     if extra_kwargs:
