@@ -9,7 +9,7 @@ caches, service clients, etc.
 * Mark them with `Inject[T]` — see [[plugins-dependency-injection]].
 
 ```python
-from semifun.di.injector import DependencyInjector
+from semifun.dispatch.SemifunApp import app
 
 #::tmsgpack_codec:UserProfile
 @dataclass(frozen=True)
@@ -18,21 +18,15 @@ class UserProfile:
     name: str                  # stored
     email: str                 # stored
 
-sender_di = DependencyInjector(injectors_map=None, seed_data={DbHandle: sender_dbh})
-sender_codec = TmsgpackCodec(
-    sort_keys=True, di=sender_di, plugin_feature_type='tmsgpack_codec',
-)
+sender_codec = app.tmsgpack_codec(seed_data={DbHandle: sender_dbh})
 wire_data = sender_codec.encode(profile)      # Only `name` and `email` go on the wire.
 
-receiver_di = DependencyInjector(injectors_map=None, seed_data={DbHandle: receiver_dbh})
-receiver_codec = TmsgpackCodec(
-    sort_keys=True, di=receiver_di, plugin_feature_type='tmsgpack_codec',
-)
+receiver_codec = app.tmsgpack_codec(seed_data={DbHandle: receiver_dbh})
 restored = receiver_codec.decode(wire_data)   # restored.dbh is receiver_dbh
 ```
 Notes:
-* With `di=DependencyInjector(...)`:
+* With `app.tmsgpack_codec(seed_data=...)`:
   - All `Inject[T]` fields will be removed on encoding and injected on decoding.
-  - The senders `seed_data` is not consulted for encoding (but the same codec may decode).
-  - Injectors can compute injected values from `seed_data`. See [[plugins-dependency-injection]].
+  - The sender's `seed_data` is not consulted for encoding (but the same codec may decode).
+  - Injectors can compute injected values from `seed_data`. See [[dispatch-dependency-injection]].
 * With `di=NoDependencyInjector`, `Inject[T]` attributes are not removed nor injected.
