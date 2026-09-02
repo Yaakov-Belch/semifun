@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from inspect import isasyncgen, isawaitable, isgenerator, signature
 from typing import TYPE_CHECKING
 
+from semifun.caching.cached_property import cached_property
 from semifun.caching.dictdefault import dictdefault
 
 from .Inject import injected_type
