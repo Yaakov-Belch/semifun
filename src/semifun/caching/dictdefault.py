@@ -38,13 +38,6 @@ Example::
 
 import asyncio
 
-
-def _resolved_future(value):
-    fut = asyncio.Future()
-    fut.set_result(value)
-    return fut
-
-
 def _mk_dictdefault():
     def _dd(with_key):
         def dictdefault(_d, _key, _fn, **kwargs):
@@ -78,3 +71,9 @@ def _mk_dictdefault():
     return dictdefault
 
 dictdefault = _mk_dictdefault()
+
+def _resolved_future(value):
+    fut = asyncio.Future()
+    fut.set_result(value)
+    return fut
+
