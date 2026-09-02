@@ -1,6 +1,6 @@
-"""Async DI context.
+"""Sync mirror of AsyncDiScope.
 
-KEEP IN SYNC with SyncDiCtx.py — that file is a mechanical transformation:
+KEEP IN SYNC with AsyncDiScope.py — this is a mechanical transformation:
   - drop async/await
   - dictdefault.a -> dictdefault
   - isasyncgen / isawaitable branches -> TypeError
@@ -23,75 +23,71 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class AsyncDiCtx:
+class SyncDiScope:
     app: SemifunApp
-    parent_ctx: AsyncDiCtx | None
+    parent_scope: SyncDiScope | None
     seed_data: dict
     ftype: str
 
     _cleanup_stack: list = factory_field(list)
     _resolving: set = factory_field(set)  # cycle detection: types currently being resolved
 
-    @cached_property
-    def _cache(self): return dictdefault.async_cache({**self.seed_data, AsyncDiCtx: self})
 
-    async def resolve_type(self, T):
+    @cached_property
+    def _cache(self): return {**self.seed_data, SyncDiScope: self}
+
+    def resolve_type(self, T):
         if T in self._resolving:
             raise RecursionError(f"Circular dependency: #::{self.ftype}_inject:{T.__name__} is already being resolved")
         self._resolving.add(T)
         try:
-            async def compute_type():
-                fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='_inject', fname=T.__name__)
-                if ctx2 is self:
+            def compute_type():
+                fn, scope2 = self.resolve_fn_scope(ftype_suffix='_inject', fname=T.__name__)
+                if scope2 is self:
                     args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
-                    return await self.fn_call(fn=fn, args=args, kwargs=kwargs)
+                    return self.fn_call(fn=fn, args=args, kwargs=kwargs)
                 else:
-                    # The type is defined through the parent_ctx chain, not here.
+                    # The type is defined through the parent_scope chain, not here.
                     # Cache it where it is defined.
-                    return await ctx2.resolve_type(T)
-            return await dictdefault.a(self._cache, T, compute_type)
+                    return scope2.resolve_type(T)
+            return dictdefault(self._cache, T, compute_type)
         finally:
             self._resolving.discard(T)
 
-    def resolve_fn_ctx(self, *, ftype_suffix, fname):
+    def resolve_fn_scope(self, *, ftype_suffix, fname):
         ftype = self.ftype + ftype_suffix
         if fn := self.app.lookup_fn(ftype=ftype, fname=fname, strict=False):
             return (fn, self)
-        elif self.parent_ctx:
-            return self.parent_ctx.resolve_fn_ctx(ftype_suffix=ftype_suffix, fname=fname)
+        elif self.parent_scope:
+            return self.parent_scope.resolve_fn_scope(ftype_suffix=ftype_suffix, fname=fname)
         else:
             raise KeyError(f'#::{ftype}:{fname}')
 
-    async def fn_call(self, *, fn, args, kwargs):
+    def fn_call(self, *, fn, args, kwargs):
         """Call fn with passthrough args/kwargs, resolving Inject[T] params via DI."""
-        inject_kwargs = {name: await self.resolve_type(T) for name, T in self.app.inject_params(fn)}
+        inject_kwargs = {name: self.resolve_type(T) for name, T in self.app.inject_params(fn)}
         result = fn(*args, **kwargs, **inject_kwargs)
         if isgenerator(result):
             value = next(result)
             self._cleanup_stack.append(result)
             return value
         if isasyncgen(result):
-            value = await result.__anext__()
-            self._cleanup_stack.append(result)
-            return value
+            raise TypeError(f"sync DI context cannot handle async generator from {fn}")
         if isawaitable(result):
-            return await result
+            raise TypeError(f"sync DI context cannot handle awaitable from {fn}")
         return result
 
-    async def fname_call(self, *, fname, args, kwargs):
-        fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='', fname=fname)
-        return await ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
+    def fname_call(self, *, fname, args, kwargs):
+        fn, scope2 = self.resolve_fn_scope(ftype_suffix='', fname=fname)
+        return scope2.fn_call(fn=fn, args=args, kwargs=kwargs)
 
-    async def aclose(self):
+    def close(self):
         """Drain the cleanup stack in reverse order."""
         exception = None
         for gen in reversed(self._cleanup_stack):
             try:
-                if isasyncgen(gen):
-                    await gen.__anext__()
-                else:
-                    next(gen)
-            except (StopIteration, StopAsyncIteration):
+                next(gen)
+            except StopIteration:
                 pass
             except BaseException as new_exc:
                 if exception is not None:

@@ -79,8 +79,8 @@ class _TestDiAdapter:
 
     def sync_call_with_args(self, *, fn, args, kwargs):
         app = SemifunApp(entry_points_group={})
-        with app.open_sync_di_ctx(parent_ctx=None, seed_data=self.seed_data, ftype='test') as ctx:
-            return ctx.fn_call(fn=fn, args=args, kwargs=kwargs)
+        with app.open_sync_scope(parent_scope=None, seed_data=self.seed_data, ftype='test') as scope:
+            return scope.fn_call(fn=fn, args=args, kwargs=kwargs)
 
 
 LOOKUP_TABLE = {

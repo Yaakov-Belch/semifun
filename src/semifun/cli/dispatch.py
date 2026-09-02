@@ -22,7 +22,7 @@ def semifun_cli():
         argv=sys.argv[1:],
         extra_kwargs=None,
         seed_data={},
-        parent_ctx=None,
+        parent_scope=None,
         help_output=print,
     ))
 
@@ -33,7 +33,7 @@ async def cli_dispatch_engine(
     argv: list[str],
     extra_kwargs: dict | None,
     seed_data: dict,
-    parent_ctx,
+    parent_scope,
     help_output: callable,
 ):
     """Discover and run a CLI command with DI and type-cast arguments.
@@ -45,7 +45,7 @@ async def cli_dispatch_engine(
         extra_kwargs: Pre-split keyword arguments merged into those parsed from
             argv.  `None` when there are none.
         seed_data: seed_data dict for DI; `{}` when there is none.
-        parent_ctx: Parent DI context for inheriting cached values (e.g., cli_di_ctx).
+        parent_scope: Parent DI context for inheriting cached values (e.g., cli_scope).
         help_output: callable for printing help text (e.g. `print`).
 
     """
@@ -77,8 +77,8 @@ async def cli_dispatch_engine(
         str_kwargs.update(extra_kwargs)
     cast_positional, cast_kwargs = cast_args(fn, str_args, str_kwargs)
 
-    async with app.open_async_di_ctx(parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype) as ctx:
-        await ctx.fn_call(fn=fn, args=cast_positional, kwargs=cast_kwargs)
+    async with app.open_async_scope(parent_scope=parent_scope, seed_data=seed_data, ftype=ftype) as scope:
+        await scope.fn_call(fn=fn, args=cast_positional, kwargs=cast_kwargs)
 
 def _print_help(*, app, ftype, help_output: callable):
     """Print help for all discovered CLI commands."""

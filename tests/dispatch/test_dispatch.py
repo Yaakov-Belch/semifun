@@ -31,7 +31,7 @@ def test_sync_dispatch_no_injection():
     def hello(name): return f"hello {name}"
     app = _app('test', {'hello': hello})
     result = app.sync_dispatch(
-        parent_ctx=None, seed_data={}, ftype='test',
+        parent_scope=None, seed_data={}, ftype='test',
         fname='hello', args=('world',), kwargs={},
     )
     assert result == "hello world"
@@ -41,7 +41,7 @@ def test_sync_dispatch_with_injection():
     def greet(uid: Inject[UserId]): return f"hello user {uid}"
     app = _app('test', {'greet': greet}, {'UserId': make_UserId})
     result = app.sync_dispatch(
-        parent_ctx=None, seed_data={}, ftype='test',
+        parent_scope=None, seed_data={}, ftype='test',
         fname='greet', args=(), kwargs={},
     )
     assert result == "hello user 42"
@@ -51,7 +51,7 @@ def test_sync_dispatch_chained_injection():
     def greet(name: Inject[UserName]): return f"hello {name}"
     app = _app('test', {'greet': greet}, {'UserId': make_UserId, 'UserName': make_UserName})
     result = app.sync_dispatch(
-        parent_ctx=None, seed_data={}, ftype='test',
+        parent_scope=None, seed_data={}, ftype='test',
         fname='greet', args=(), kwargs={},
     )
     assert result == "hello user_42"
@@ -61,7 +61,7 @@ def test_sync_dispatch_seed_data():
     def greet(uid: Inject[UserId]): return f"hello user {uid}"
     app = _app('test', {'greet': greet})  # no inject table needed
     result = app.sync_dispatch(
-        parent_ctx=None, seed_data={UserId: 99}, ftype='test',
+        parent_scope=None, seed_data={UserId: 99}, ftype='test',
         fname='greet', args=(), kwargs={},
     )
     assert result == "hello user 99"
@@ -74,7 +74,7 @@ def test_sync_dispatch_all():
     def bye(): return "bye"
     app = _app('test', {'hello': hello, 'bye': bye})
     result = app.sync_dispatch_all(
-        parent_ctx=None, seed_data={}, ftype='test',
+        parent_scope=None, seed_data={}, ftype='test',
         args=(), kwargs={},
     )
     assert result == {'hello': 'hello', 'bye': 'bye'}
@@ -87,7 +87,7 @@ def test_sync_parametric_type():
         return {'items': items, 'users': users}
     app = _app('test', {'get_data': get_data}, {'DB': make_DB})
     result = app.sync_dispatch(
-        parent_ctx=None, seed_data={}, ftype='test',
+        parent_scope=None, seed_data={}, ftype='test',
         fname='get_data', args=(), kwargs={},
     )
     assert result == {'items': '<DB:items>', 'users': '<DB:users>'}
@@ -122,7 +122,7 @@ def test_sync_cycle_detection():
     app = _app('test', {'start': start}, {'A': make_A, 'B': make_B})
     with pytest.raises(RecursionError, match="Circular dependency"):
         app.sync_dispatch(
-            parent_ctx=None, seed_data={}, ftype='test',
+            parent_scope=None, seed_data={}, ftype='test',
             fname='start', args=(), kwargs={},
         )
 
@@ -134,7 +134,7 @@ async def test_async_dispatch_with_injection():
     def greet(uid: Inject[UserId]): return f"hello user {uid}"
     app = _app('test', {'greet': greet}, {'UserId': make_UserId})
     result = await app.async_dispatch(
-        parent_ctx=None, seed_data={}, ftype='test',
+        parent_scope=None, seed_data={}, ftype='test',
         fname='greet', args=(), kwargs={},
     )
     assert result == "hello user 42"
@@ -146,7 +146,7 @@ async def test_async_parametric_type():
         return {'items': items, 'users': users}
     app = _app('test', {'get_data': get_data}, {'DB': make_DB})
     result = await app.async_dispatch(
-        parent_ctx=None, seed_data={}, ftype='test',
+        parent_scope=None, seed_data={}, ftype='test',
         fname='get_data', args=(), kwargs={},
     )
     assert result == {'items': '<DB:items>', 'users': '<DB:users>'}
@@ -162,7 +162,7 @@ async def test_async_cycle_detection():
     app = _app('test', {'start': start}, {'A': make_A, 'B': make_B})
     with pytest.raises(RecursionError, match="Circular dependency"):
         await app.async_dispatch(
-            parent_ctx=None, seed_data={}, ftype='test',
+            parent_scope=None, seed_data={}, ftype='test',
             fname='start', args=(), kwargs={},
         )
 
@@ -176,9 +176,9 @@ def test_sync_generator_cleanup():
         yield 'the_resource'
         cleanup_called.append('teardown')
     app = _app('test', {'resource': resource})
-    with app.open_sync_di_ctx(parent_ctx=None, seed_data={}, ftype='test') as ctx:
-        fn, ctx2 = ctx.resolve_fn_ctx(ftype_suffix='', fname='resource')
-        result = ctx2.fn_call(fn=fn, args=(), kwargs={})
+    with app.open_sync_scope(parent_scope=None, seed_data={}, ftype='test') as scope:
+        fn, scope2 = scope.resolve_fn_scope(ftype_suffix='', fname='resource')
+        result = scope2.fn_call(fn=fn, args=(), kwargs={})
         assert result == 'the_resource'
         assert cleanup_called == ['setup']
     assert cleanup_called == ['setup', 'teardown']
@@ -190,6 +190,6 @@ def test_missing_fn_raises():
     app = _app('test', {})
     with pytest.raises(KeyError, match='#::test:nonexistent'):
         app.sync_dispatch(
-            parent_ctx=None, seed_data={}, ftype='test',
+            parent_scope=None, seed_data={}, ftype='test',
             fname='nonexistent', args=(), kwargs={},
         )

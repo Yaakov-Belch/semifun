@@ -5,9 +5,9 @@ from inspect import signature
 from semifun.caching.cached_property import cached_property
 from semifun.caching.dictdefault import dictdefault
 
-from .AsyncDiCtx import AsyncDiCtx
+from .AsyncDiScope import AsyncDiScope
 from .Inject import injected_type
-from .SyncDiCtx import SyncDiCtx
+from .SyncDiScope import SyncDiScope
 from .load_lookup_tables import load_lookup_tables
 from .tools import factory_field
 
@@ -41,44 +41,44 @@ class SemifunApp:
             for fname, fn_loader in self._lookup_tables.get(ftype, {}).items()
         ]
 
-    async def async_dispatch(self, *, parent_ctx, seed_data, ftype, fname, args, kwargs):
-        async with self.open_async_di_ctx(parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype) as di_ctx:
-            fn, ctx2 = di_ctx.resolve_fn_ctx(ftype_suffix='', fname=fname)
-            return await ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
+    async def async_dispatch(self, *, parent_scope, seed_data, ftype, fname, args, kwargs):
+        async with self.open_async_scope(parent_scope=parent_scope, seed_data=seed_data, ftype=ftype) as scope:
+            fn, scope2 = scope.resolve_fn_scope(ftype_suffix='', fname=fname)
+            return await scope2.fn_call(fn=fn, args=args, kwargs=kwargs)
 
-    async def async_dispatch_all(self, *, parent_ctx, seed_data, ftype, args, kwargs):
-        async with self.open_async_di_ctx(parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype) as di_ctx:
+    async def async_dispatch_all(self, *, parent_scope, seed_data, ftype, args, kwargs):
+        async with self.open_async_scope(parent_scope=parent_scope, seed_data=seed_data, ftype=ftype) as scope:
             return {
-                fname: await di_ctx.fn_call(fn=fn, args=args, kwargs=kwargs)
+                fname: await scope.fn_call(fn=fn, args=args, kwargs=kwargs)
                 for fname, fn in self.fn_items(ftype=ftype)
             }
 
     @asynccontextmanager
-    async def open_async_di_ctx(self, *, parent_ctx, seed_data, ftype):
-        di_ctx = AsyncDiCtx(app=self, parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype)
-        try: yield di_ctx
-        finally: await di_ctx.aclose()
+    async def open_async_scope(self, *, parent_scope, seed_data, ftype):
+        scope = AsyncDiScope(app=self, parent_scope=parent_scope, seed_data=seed_data, ftype=ftype)
+        try: yield scope
+        finally: await scope.aclose()
 
-    # --- sync mirrors of async_dispatch / async_dispatch_all / open_async_di_ctx ---
-    # KEEP IN SYNC: drop async/await, AsyncDiCtx -> SyncDiCtx, aclose -> close.
+    # --- sync mirrors of async_dispatch / async_dispatch_all / open_async_scope ---
+    # KEEP IN SYNC: drop async/await, AsyncDiScope -> SyncDiScope, aclose -> close.
 
-    def sync_dispatch(self, *, parent_ctx, seed_data, ftype, fname, args, kwargs):
-        with self.open_sync_di_ctx(parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype) as di_ctx:
-            fn, ctx2 = di_ctx.resolve_fn_ctx(ftype_suffix='', fname=fname)
-            return ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
+    def sync_dispatch(self, *, parent_scope, seed_data, ftype, fname, args, kwargs):
+        with self.open_sync_scope(parent_scope=parent_scope, seed_data=seed_data, ftype=ftype) as scope:
+            fn, scope2 = scope.resolve_fn_scope(ftype_suffix='', fname=fname)
+            return scope2.fn_call(fn=fn, args=args, kwargs=kwargs)
 
-    def sync_dispatch_all(self, *, parent_ctx, seed_data, ftype, args, kwargs):
-        with self.open_sync_di_ctx(parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype) as di_ctx:
+    def sync_dispatch_all(self, *, parent_scope, seed_data, ftype, args, kwargs):
+        with self.open_sync_scope(parent_scope=parent_scope, seed_data=seed_data, ftype=ftype) as scope:
             return {
-                fname: di_ctx.fn_call(fn=fn, args=args, kwargs=kwargs)
+                fname: scope.fn_call(fn=fn, args=args, kwargs=kwargs)
                 for fname, fn in self.fn_items(ftype=ftype)
             }
 
     @contextmanager
-    def open_sync_di_ctx(self, *, parent_ctx, seed_data, ftype):
-        di_ctx = SyncDiCtx(app=self, parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype)
-        try: yield di_ctx
-        finally: di_ctx.close()
+    def open_sync_scope(self, *, parent_scope, seed_data, ftype):
+        scope = SyncDiScope(app=self, parent_scope=parent_scope, seed_data=seed_data, ftype=ftype)
+        try: yield scope
+        finally: scope.close()
 
     @cached_property
     def tmsgpack_codec_no_seed_data(self):
@@ -109,8 +109,8 @@ class _TmsgpackDiAdapter:
         return _TmsgpackDiAdapter(app=self.app, seed_data={**self.seed_data, **seed_data})
 
     def sync_call_with_args(self, *, fn, args, kwargs):
-        with self.app.open_sync_di_ctx(parent_ctx=None, seed_data=self.seed_data, ftype='tmsgpack_codec') as ctx:
-            return ctx.fn_call(fn=fn, args=args, kwargs=kwargs)
+        with self.app.open_sync_scope(parent_scope=None, seed_data=self.seed_data, ftype='tmsgpack_codec') as scope:
+            return scope.fn_call(fn=fn, args=args, kwargs=kwargs)
 
 
 app = SemifunApp(entry_points_group='semifun.dispatch.app')
