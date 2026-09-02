@@ -1,3 +1,10 @@
+import importlib
+from dataclasses import dataclass
+from pathlib import Path
+
+from semifun.caching.cached_property import cached_property
+
+
 def load_lookup_tables(entry_points_group: str):
     ...
 
@@ -30,4 +37,3 @@ class FnLoader:
 
     @cached_property
     def fn(self): return getattr(self.module_loader.module, self.fname)
-
