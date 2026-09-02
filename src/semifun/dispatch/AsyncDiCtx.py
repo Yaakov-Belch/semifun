@@ -35,8 +35,10 @@ class AsyncDiCtx:
 
     def resolve_fn_ctx(self, *, ftype_suffix, fname):
         ftype = self.ftype + ftype_suffix
-        if fn := self.app.lookup_fn(ftype=ftype, fname=fname, strict=False): return (fn, self)
-        elif self.parent_ctx: return self.parent_ctx.resolve_fn_ctx(ftype_suffix=ftype_suffix, fname=fname)
+        if fn := self.app.lookup_fn(ftype=ftype, fname=fname, strict=False):
+            return (fn, self)
+        elif self.parent_ctx:
+            return self.parent_ctx.resolve_fn_ctx(ftype_suffix=ftype_suffix, fname=fname)
 
     async def fn_call(self, *, fn, args, kwargs):
         """Call fn with passthrough args/kwargs, resolving Inject[T] params via DI."""
