@@ -36,8 +36,6 @@ async def cli_dispatch_engine(
 ):
     """Discover and run a CLI command with DI and type-cast arguments.
 
-    Runs inside the caller's event loop — it does not create one.
-
     Args:
         feature_type: Feature type for CLI commands (e.g., 'cli').
         argv: Command-line arguments, without the program name.
