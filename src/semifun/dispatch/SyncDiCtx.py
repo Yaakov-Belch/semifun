@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from inspect import isasyncgen, isawaitable, isgenerator
 from typing import TYPE_CHECKING
 
+from semifun.caching.cached_property import cached_property
 from semifun.caching.dictdefault import dictdefault
 
 from .tools import factory_field
@@ -32,24 +33,20 @@ class SyncDiCtx:
     _resolving: set = factory_field(set)  # cycle detection: types currently being resolved
 
 
-    _cache: dict = factory_field(dict)
+    @cached_property
+    def _cache(self): return {**self.seed_data, SyncDiCtx: self}
 
     def resolve_type(self, T):
-        if T is SyncDiCtx:
-            return self
-        if T in self.seed_data:
-            return self.seed_data[T]
-        # If the factory lives in a parent context, delegate so the result
-        # is cached there (shared across child contexts, not recomputed).
-        fn_ctx = self.resolve_fn_ctx(ftype_suffix='_inject', fname=T.__name__)
-        _fn, owner_ctx = fn_ctx
-        if owner_ctx is not self:
-            return owner_ctx.resolve_type(T)
         if T in self._resolving:
             raise RecursionError(f"Circular dependency: #::{self.ftype}_inject:{T.__name__} is already being resolved")
         self._resolving.add(T)
         try:
             def compute_type():
+                # If the factory lives in a parent context, delegate so the result
+                # is cached there (shared across child contexts, not recomputed).
+                _fn, owner_ctx = self.resolve_fn_ctx(ftype_suffix='_inject', fname=T.__name__)
+                if owner_ctx is not self:
+                    return owner_ctx.resolve_type(T)
                 args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
                 return self.fname_call_inject(fname=T.__name__, args=args, kwargs=kwargs)
             return dictdefault(self._cache, T, compute_type)

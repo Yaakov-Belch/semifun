@@ -17,6 +17,10 @@ All callers receive the same awaitable task object.
 All variants accept ``**kwargs`` which are forwarded to the function.
 They are considered only the first time — when the computation is performed.
 
+``dictdefault.async_cache(d)`` wraps each value in ``d`` as a resolved
+``asyncio.Future``, returning a cache dict that ``dictdefault.a`` can use
+with pre-populated (seed) values alongside computed entries.
+
 Example::
 
     cache1 = {}; cache2 = {}  # sync and async use distinct caching formats
@@ -26,7 +30,20 @@ Example::
         # → await async_create_session()
     page    = await dictdefault.ak(cache2, url, async_fetch_page)
         # → await async_fetch_page(url)
+
+    # Pre-populate an async cache with plain values:
+    cache3 = dictdefault.async_cache({'key': value})
+    result = await dictdefault.a(cache3, 'key', compute_fn)  # → value (no compute)
 """
+
+import asyncio
+
+
+def _resolved_future(value):
+    fut = asyncio.Future()
+    fut.set_result(value)
+    return fut
+
 
 def _mk_dictdefault():
     def _dd(with_key):
@@ -49,10 +66,14 @@ def _mk_dictdefault():
             return await _d[_key]
         return dictdefault
 
+    def _async_cache(d):
+        return {k: _resolved_future(v) for k, v in d.items()}
+
     dictdefault    = _dd(False)
     dictdefault.k  = _dd(True)
     dictdefault.a  = _dda(False)
     dictdefault.ak = _dda(True)
+    dictdefault.async_cache = _async_cache
 
     return dictdefault
 
