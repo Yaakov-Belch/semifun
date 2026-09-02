@@ -60,6 +60,7 @@ async def _dispatch(argv, capsys, app=None):
         argv=argv,
         extra_kwargs=None,
         seed_data={},
+        parent_ctx=None,
         help_output=print,
     )
     return capsys.readouterr().out
@@ -121,6 +122,7 @@ async def test_async_engine_awaits_in_the_callers_loop(capsys):
         argv=['agreet', 'name=Alice'],
         extra_kwargs=None,
         seed_data={},
+        parent_ctx=None,
         help_output=print,
     )
     assert capsys.readouterr().out == 'Hello, Alice!\n'
@@ -138,6 +140,7 @@ async def test_async_engine_prints_help_for_empty_argv(capsys):
         argv=[],
         extra_kwargs=None,
         seed_data={},
+        parent_ctx=None,
         help_output=print,
     )
     assert 'Available commands:' in capsys.readouterr().out
@@ -155,6 +158,7 @@ async def test_unknown_command_prints_help_and_returns(capsys):
         argv=['nope'],
         extra_kwargs=None,
         seed_data={},
+        parent_ctx=None,
         help_output=print,
     )
     out = capsys.readouterr().out
@@ -174,6 +178,7 @@ async def test_async_engine_passes_seed_data_to_di(capsys):
         argv=['ctx', 'suffix=!'],
         extra_kwargs=None,
         seed_data={_Ctx: _Ctx(name='xctx')},
+        parent_ctx=None,
         help_output=print,
     )
     assert capsys.readouterr().out == 'xctx!\n'
@@ -209,6 +214,7 @@ async def test_post_cli_hook_runs_after_command(capsys):
         argv=['cmd'],
         extra_kwargs=None,
         seed_data={},
+        parent_ctx=None,
         help_output=print,
     )
     out = capsys.readouterr().out
@@ -230,6 +236,7 @@ async def test_no_post_cli_hook_is_fine(capsys):
         argv=['cmd'],
         extra_kwargs=None,
         seed_data={},
+        parent_ctx=None,
         help_output=print,
     )
     assert capsys.readouterr().out == 'just the command\n'
@@ -248,6 +255,7 @@ def test_documented_entry_point_shape(capsys, monkeypatch):
             argv=sys.argv[1:],
             extra_kwargs=None,
             seed_data={},
+            parent_ctx=None,
             help_output=print,
         ))
 
@@ -273,6 +281,7 @@ async def test_help_hides_injected_parameters(capsys):
         argv=['ctx', '--help'],
         extra_kwargs=None,
         seed_data={},
+        parent_ctx=None,
         help_output=print,
     )
     out = capsys.readouterr().out

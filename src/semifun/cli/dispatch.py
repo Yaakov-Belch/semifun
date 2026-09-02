@@ -22,6 +22,7 @@ def semifun_cli():
         argv=sys.argv[1:],
         extra_kwargs=None,
         seed_data={},
+        parent_ctx=None,
         help_output=print,
     ))
 
@@ -32,6 +33,7 @@ async def cli_dispatch_engine(
     argv: list[str],
     extra_kwargs: dict | None,
     seed_data: dict,
+    parent_ctx,
     help_output: callable,
 ):
     """Discover and run a CLI command with DI and type-cast arguments.
@@ -43,6 +45,7 @@ async def cli_dispatch_engine(
         extra_kwargs: Pre-split keyword arguments merged into those parsed from
             argv.  `None` when there are none.
         seed_data: seed_data dict for DI; `{}` when there is none.
+        parent_ctx: Parent DI context for inheriting cached values (e.g., cli_di_ctx).
         help_output: callable for printing help text (e.g. `print`).
 
     """
@@ -75,7 +78,7 @@ async def cli_dispatch_engine(
         str_kwargs.update(extra_kwargs)
     cast_positional, cast_kwargs = cast_args(fn, str_args, str_kwargs)
 
-    async with app.open_async_di_ctx(parent_ctx=None, seed_data=seed_data, ftype=ftype) as ctx:
+    async with app.open_async_di_ctx(parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype) as ctx:
         await ctx.fn_call(fn=fn, args=cast_positional, kwargs=cast_kwargs)
         post_cli_hook = app.lookup_fn(ftype=ftype, fname='post_cli_hook', strict=False)
         if post_cli_hook:
