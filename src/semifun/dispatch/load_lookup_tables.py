@@ -96,3 +96,19 @@ class FnLoader:
 
     @cached_property
     def fn(self): return getattr(self.module_loader.module, self.fname_alias)
+
+@dataclass(frozen=True)
+class LoadedFn:
+    """Pre-loaded function wrapper, matching the .fn interface of FnLoader.
+
+    In production, SemifunApp receives an entry_points_group string and
+    load_lookup_tables builds {ftype: {fname: FnLoader}} with lazy loading.
+    For testing, pass a dict directly as entry_points_group, wrapping each
+    callable in LoadedFn so lookup_fn/fn_items can access .fn uniformly:
+
+        test_app = SemifunApp(entry_points_group={
+            'cli': {'hello': LoadedFn(fn=hello), ...},
+        })
+    """
+    fn: callable
+

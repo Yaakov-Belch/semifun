@@ -10,11 +10,24 @@ from .load_lookup_tables import load_lookup_tables
 
 @dataclass(frozen=True)
 class SemifunApp:
-    entry_points_group: str
+    # Testing only: provide _lookup_tables directly as a dict to entry_points_group.
+    entry_points_group: str | dict
 
     @cached_property
     def _lookup_tables(self) -> dict[str, dict[str, FnLoader]]: # [ftype][fname]
+        if isinstance(self.entry_points_group, dict): return self.entry_points_group
         return load_lookup_tables(entry_points_group=self.entry_points_group)
+
+    def lookup_fn(self, *, ftype, fname, strict):
+        if res := self._lookup_tables.get(ftype, {}).get(fname, None): return res.fn
+        if strict: raise KeyError(f'#::{ftype}:{fname}')
+        return None
+
+    def fn_items(self, *, ftype):
+        return [
+            (fname, fn_loader.fn)
+            for fname, fn_loader in self._lookup_tables.get(ftype, {}).items()
+        ]
 
     async def async_dispatch(self, *, parent_ctx, seed_data, ftype, fname, args, kwargs):
         async with self.open_async_di_ctx(parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype) as di_ctx:
@@ -55,13 +68,3 @@ class SemifunApp:
         try: yield di_ctx
         finally: di_ctx.close()
 
-    def lookup_fn(self, *, ftype, fname, strict):
-        if res := self._lookup_tables.get(ftype, {}).get(fname, None): return res.fn
-        if strict: raise KeyError(f'#::{ftype}:{fname}')
-        return None
-
-    def fn_items(self, *, ftype):
-        return [
-            (fname, fn_loader.fn)
-            for fname, fn_loader in self._lookup_tables.get(ftype, {}).items()
-        ]
