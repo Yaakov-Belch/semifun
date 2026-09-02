@@ -12,7 +12,7 @@ class SemifunApp:
     entry_points_group: str
 
     @cached_property
-    def _lookup_tables(self):
+    def _lookup_tables(self) -> dict[str, dict[str, FnLoader]]: # [ftype][fname]
         return load_lookup_tables(entry_points_group=self.entry_points_group)
 
     async def async_dispatch(self, *, parent_ctx, seed_data, ftype, fname, args, kwargs):
