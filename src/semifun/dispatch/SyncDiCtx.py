@@ -10,13 +10,12 @@ When you change one, apply the same change to the other.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from inspect import isasyncgen, isawaitable, isgenerator, signature
+from inspect import isasyncgen, isawaitable, isgenerator
 from typing import TYPE_CHECKING
 
 from semifun.caching.cached_property import cached_property
 from semifun.caching.dictdefault import dictdefault
 
-from .Inject import injected_type
 from .tools import factory_field
 
 if TYPE_CHECKING:
@@ -61,10 +60,8 @@ class SyncDiCtx:
     def fn_call(self, *, fn, args, kwargs):
         """Call fn with passthrough args/kwargs, resolving Inject[T] params via DI."""
         inject_kwargs = {}
-        for p in signature(fn).parameters.values():
-            T = injected_type(p.annotation)
-            if T is not None:
-                inject_kwargs[p.name] = self.resolve_type(T)
+        for name, T in self.app.inject_params(fn):
+            inject_kwargs[name] = self.resolve_type(T)
         result = fn(*args, **kwargs, **inject_kwargs)
         if isgenerator(result):
             value = next(result)

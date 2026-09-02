@@ -1,17 +1,29 @@
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
+from inspect import signature
 
 from semifun.caching.cached_property import cached_property
+from semifun.caching.dictdefault import dictdefault
 
 from .AsyncDiCtx import AsyncDiCtx
+from .Inject import injected_type
 from .SyncDiCtx import SyncDiCtx
 from .load_lookup_tables import load_lookup_tables
+from .tools import factory_field
 
 
 @dataclass(frozen=True)
 class SemifunApp:
     # Testing only: provide _lookup_tables directly as a dict to entry_points_group.
     entry_points_group: str | dict
+    _inject_params_cache: dict = factory_field(dict)
+
+    def inject_params(self, fn):
+        """Return [(param_name, T), ...] for Inject[T] params in fn's signature. Cached."""
+        return dictdefault(self._inject_params_cache, fn, lambda: [
+            (p.name, T) for p in signature(fn).parameters.values()
+            if (T := injected_type(p.annotation)) is not None
+        ])
 
     @cached_property
     def _lookup_tables(self) -> dict[str, dict[str, FnLoader]]: # [ftype][fname]
