@@ -31,16 +31,23 @@ class AsyncDiCtx:
     ftype: str
 
     _cleanup_stack: list = factory_field(list)
+    _resolving: set = factory_field(set)  # cycle detection: types currently being resolved
 
 
     @cached_property
     def _cache(self): return {**self.seed_data, AsyncDiCtx:self}
 
     async def resolve_type(self, T):
-        async def compute_type():
-            args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
-            return await self.fname_call_inject(fname=T.__name__, args=args, kwargs=kwargs)
-        return await dictdefault.a(self._cache, T, compute_type)
+        if T in self._resolving:
+            raise RecursionError(f"Circular dependency: #::{self.ftype}_inject:{T.__name__} is already being resolved")
+        self._resolving.add(T)
+        try:
+            async def compute_type():
+                args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
+                return await self.fname_call_inject(fname=T.__name__, args=args, kwargs=kwargs)
+            return await dictdefault.a(self._cache, T, compute_type)
+        finally:
+            self._resolving.discard(T)
 
     def resolve_fn_ctx(self, *, ftype_suffix, fname):
         ftype = self.ftype + ftype_suffix
