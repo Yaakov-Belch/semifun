@@ -79,9 +79,6 @@ async def cli_dispatch_engine(
 
     async with app.open_async_di_ctx(parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype) as ctx:
         await ctx.fn_call(fn=fn, args=cast_positional, kwargs=cast_kwargs)
-        post_cli_hook = app.lookup_fn(ftype=ftype, fname='post_cli_hook', strict=False)
-        if post_cli_hook:
-            await ctx.fn_call(fn=post_cli_hook, args=(), kwargs={})
 
 def _print_help(*, app, ftype, help_output: callable):
     """Print help for all discovered CLI commands."""

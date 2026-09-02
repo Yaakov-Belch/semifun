@@ -193,55 +193,6 @@ def test_semifun_cli_entry_point():
     )
 
 
-# --- post_cli_hook ---
-
-async def test_post_cli_hook_runs_after_command(capsys):
-    """A post_cli_hook registered in the feature map runs after the command."""
-    hook_called = []
-
-    async def my_command():
-        """A simple command."""
-        print('command ran')
-
-    async def my_hook():
-        hook_called.append(True)
-        print('hook ran')
-
-    app = _make_app('cli', {'cmd': my_command, 'post_cli_hook': my_hook})
-    await cli_dispatch_engine(
-        app=app,
-        ftype='cli',
-        argv=['cmd'],
-        extra_kwargs=None,
-        seed_data={},
-        parent_ctx=None,
-        help_output=print,
-    )
-    out = capsys.readouterr().out
-    assert 'command ran' in out
-    assert 'hook ran' in out
-    assert hook_called
-
-
-async def test_no_post_cli_hook_is_fine(capsys):
-    """Without a post_cli_hook, the engine runs the command and stops."""
-    async def my_command():
-        """A simple command."""
-        print('just the command')
-
-    app = _make_app('cli', {'cmd': my_command})
-    await cli_dispatch_engine(
-        app=app,
-        ftype='cli',
-        argv=['cmd'],
-        extra_kwargs=None,
-        seed_data={},
-        parent_ctx=None,
-        help_output=print,
-    )
-    assert capsys.readouterr().out == 'just the command\n'
-
-
 # --- documented entry point shape ---
 
 def test_documented_entry_point_shape(capsys, monkeypatch):
