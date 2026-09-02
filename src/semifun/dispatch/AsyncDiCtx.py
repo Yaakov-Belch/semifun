@@ -48,6 +48,8 @@ class AsyncDiCtx:
             return (fn, self)
         elif self.parent_ctx:
             return self.parent_ctx.resolve_fn_ctx(ftype_suffix=ftype_suffix, fname=fname)
+        else:
+            raise KeyError(f'#::{ftype}:{fname}')
 
     async def fn_call(self, *, fn, args, kwargs):
         """Call fn with passthrough args/kwargs, resolving Inject[T] params via DI."""
