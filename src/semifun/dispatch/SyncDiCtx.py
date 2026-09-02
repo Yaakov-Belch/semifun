@@ -39,7 +39,7 @@ class SyncDiCtx:
     def resolve_type(self, T):
         def compute_type():
             args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
-            return self.fname_call(fname=T.__name__, args=args, kwargs=kwargs)
+            return self.fname_call_inject(fname=T.__name__, args=args, kwargs=kwargs)
         return dictdefault(self._cache, T, compute_type)
 
     def resolve_fn_ctx(self, *, ftype_suffix, fname):
@@ -69,6 +69,10 @@ class SyncDiCtx:
 
     def fname_call(self, *, fname, args, kwargs):
         fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='', fname=fname)
+        return ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
+
+    def fname_call_inject(self, *, fname, args, kwargs):
+        fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='_inject', fname=fname)
         return ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
 
     def close(self):

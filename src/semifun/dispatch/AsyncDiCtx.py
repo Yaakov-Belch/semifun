@@ -39,7 +39,7 @@ class AsyncDiCtx:
     async def resolve_type(self, T):
         async def compute_type():
             args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
-            return await self.fname_call(fname=T.__name__, args=args, kwargs=kwargs)
+            return await self.fname_call_inject(fname=T.__name__, args=args, kwargs=kwargs)
         return await dictdefault.a(self._cache, T, compute_type)
 
     def resolve_fn_ctx(self, *, ftype_suffix, fname):
@@ -71,6 +71,10 @@ class AsyncDiCtx:
 
     async def fname_call(self, *, fname, args, kwargs):
         fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='', fname=fname)
+        return await ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
+
+    async def fname_call_inject(self, *, fname, args, kwargs):
+        fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='_inject', fname=fname)
         return await ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
 
     async def aclose(self):
