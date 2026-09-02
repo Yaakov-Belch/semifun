@@ -42,13 +42,14 @@ class SyncDiCtx:
         self._resolving.add(T)
         try:
             def compute_type():
-                # If the factory lives in a parent context, delegate so the result
-                # is cached there (shared across child contexts, not recomputed).
-                _fn, owner_ctx = self.resolve_fn_ctx(ftype_suffix='_inject', fname=T.__name__)
-                if owner_ctx is not self:
-                    return owner_ctx.resolve_type(T)
-                args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
-                return self.fname_call_inject(fname=T.__name__, args=args, kwargs=kwargs)
+                fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='_inject', fname=T.__name__)
+                if ctx2 is self:
+                    args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
+                    return self.fn_call(fn=fn, args=args, kwargs=kwargs)
+                else:
+                    # The type is defined through the parent_ctx chain, not here.
+                    # Cache it where it is defined.
+                    return ctx2.resolve_type(T)
             return dictdefault(self._cache, T, compute_type)
         finally:
             self._resolving.discard(T)
@@ -78,10 +79,6 @@ class SyncDiCtx:
 
     def fname_call(self, *, fname, args, kwargs):
         fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='', fname=fname)
-        return ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
-
-    def fname_call_inject(self, *, fname, args, kwargs):
-        fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='_inject', fname=fname)
         return ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
 
     def close(self):

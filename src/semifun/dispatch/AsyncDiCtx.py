@@ -41,13 +41,14 @@ class AsyncDiCtx:
         self._resolving.add(T)
         try:
             async def compute_type():
-                # If the factory lives in a parent context, delegate so the result
-                # is cached there (shared across child contexts, not recomputed).
-                _fn, owner_ctx = self.resolve_fn_ctx(ftype_suffix='_inject', fname=T.__name__)
-                if owner_ctx is not self:
-                    return await owner_ctx.resolve_type(T)
-                args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
-                return await self.fname_call_inject(fname=T.__name__, args=args, kwargs=kwargs)
+                fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='_inject', fname=T.__name__)
+                if ctx2 is self:
+                    args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
+                    return await self.fn_call(fn=fn, args=args, kwargs=kwargs)
+                else:
+                    # The type is defined through the parent_ctx chain, not here.
+                    # Cache it where it is defined.
+                    return await ctx2.resolve_type(T)
             return await dictdefault.a(self._cache, T, compute_type)
         finally:
             self._resolving.discard(T)
@@ -79,10 +80,6 @@ class AsyncDiCtx:
 
     async def fname_call(self, *, fname, args, kwargs):
         fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='', fname=fname)
-        return await ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
-
-    async def fname_call_inject(self, *, fname, args, kwargs):
-        fn, ctx2 = self.resolve_fn_ctx(ftype_suffix='_inject', fname=fname)
         return await ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
 
     async def aclose(self):
