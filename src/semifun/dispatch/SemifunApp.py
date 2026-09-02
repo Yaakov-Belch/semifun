@@ -80,5 +80,36 @@ class SemifunApp:
         try: yield di_ctx
         finally: di_ctx.close()
 
+    @cached_property
+    def tmsgpack_codec_no_seed_data(self):
+        return self.tmsgpack_codec(seed_data={})
+
+    def tmsgpack_codec(self, *, seed_data):
+        from tmsgpack.codec import TmsgpackCodec
+        return TmsgpackCodec(
+            sort_keys=True,
+            di=_TmsgpackDiAdapter(app=self, seed_data=seed_data),
+            plugin_feature_type='tmsgpack_codec',
+        )
+
+
+@dataclass(frozen=True)
+class _TmsgpackDiAdapter:
+    """Adapts SemifunApp to the DependencyInjectorProtocol expected by TmsgpackCodec."""
+    app: SemifunApp
+    seed_data: dict
+
+    @staticmethod
+    def injected_type(annotation):
+        return injected_type(annotation)
+
+    def with_seed_data(self, seed_data):
+        return _TmsgpackDiAdapter(app=self.app, seed_data={**self.seed_data, **seed_data})
+
+    def sync_call_with_args(self, *, fn, args, kwargs):
+        with self.app.open_sync_di_ctx(parent_ctx=None, seed_data=self.seed_data, ftype='tmsgpack_codec') as ctx:
+            return ctx.fn_call(fn=fn, args=args, kwargs=kwargs)
+
+
 app = SemifunApp(entry_points_group='semifun.dispatch.app')
 
