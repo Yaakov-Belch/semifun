@@ -80,3 +80,5 @@ class SemifunApp:
         try: yield di_ctx
         finally: di_ctx.close()
 
+app = SemifunApp(entry_points_group='semifun.dispatch.app')
+
