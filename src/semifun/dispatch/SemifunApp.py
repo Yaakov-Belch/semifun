@@ -89,7 +89,6 @@ class SemifunApp:
         return TmsgpackCodec(
             sort_keys=True,
             di=_TmsgpackDiAdapter(app=self, seed_data=seed_data),
-            plugin_feature_type='tmsgpack_codec',
         )
 
 
@@ -102,6 +101,9 @@ class _TmsgpackDiAdapter:
     @staticmethod
     def injected_type(annotation):
         return injected_type(annotation)
+
+    def lookup_type(self, type_name):
+        return self.app.lookup_fn(ftype='tmsgpack_codec', fname=type_name, strict=True)
 
     def with_seed_data(self, seed_data):
         return _TmsgpackDiAdapter(app=self.app, seed_data={**self.seed_data, **seed_data})

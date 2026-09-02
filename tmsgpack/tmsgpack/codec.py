@@ -1,7 +1,6 @@
 from base64 import urlsafe_b64encode
 from dataclasses import dataclass, field, fields, is_dataclass, replace
 from typing import Any, Protocol
-from semifun.caching.cached_property import cached_property
 
 import enum
 from .api import EncodeDecode
@@ -11,6 +10,7 @@ from .codec_custom import TmsgpackCustom, make_codec_handler_custom
 class DependencyInjectorProtocol(Protocol):
     @staticmethod
     def injected_type(annotation: Any) -> type | None: ...
+    def lookup_type(self, type_name: str) -> Any: ...
     def with_seed_data(self, seed_data: dict) -> "DependencyInjectorProtocol": ...
     def sync_call_with_args(self, *, fn: Any, args: tuple, kwargs: dict[str, Any]) -> Any: ...
 
@@ -20,6 +20,8 @@ class NoDependencyInjector:
     @staticmethod
     def injected_type(annotation):
         return None
+    def lookup_type(self, type_name):
+        raise TypeError("Type lookup is not supported without a DependencyInjector")
     def with_seed_data(self, seed_data):
         raise TypeError("Dependency injection is not supported without a DependencyInjector")
     def sync_call_with_args(self, *, fn, args, kwargs):
@@ -34,7 +36,6 @@ class TmsgpackCodec(EncodeDecode):
     # `replace()` re-runs default_factory, giving each derived codec fresh caches.
     encoder_cache: dict = field(default_factory=dict, init=False, repr=False)
     decoder_cache: dict = field(default_factory=dict, init=False, repr=False)
-    plugin_feature_type: str
 
     def with_seed_data(self, seed_data):
         return replace(self, di=self.di.with_seed_data(seed_data))
@@ -73,16 +74,11 @@ class TmsgpackCodec(EncodeDecode):
         codec_handler = self.decoder_cache[type_name]
         return codec_handler.decode_dctx(dctx=dctx)
 
-    @cached_property
-    def feature_map(self):
-        from semifun.plugins.registry import get_cached_feature_map
-        return get_cached_feature_map(feature_type=self.plugin_feature_type)
-
     def type_to_type_name(self, _type):
         return _type.__name__
 
     def type_name_to_codec_spec(self, type_name):
-        return self.feature_map(feature=type_name)
+        return self.di.lookup_type(type_name)
 
     def codec_spec_to_codec_handler(self, codec_spec, type_name):
         if isinstance(codec_spec, enum.EnumType):
