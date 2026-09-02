@@ -5,16 +5,22 @@ from typing import get_args, get_origin
 type Inject[T] = T
 
 
-@dataclass(frozen=True)
-class _ParametricInstance:
-    """A parameterized DI type, e.g. DB('users').
+def injected_type(annotation) -> type | None:
+    """If annotation is Inject[T], return T. Otherwise return None."""
+    if get_origin(annotation) is Inject:
+        args = get_args(annotation)
+        if len(args) == 1:
+            return args[0]
+    return None
 
-    Works with resolve_type: __name__ for lookup, dependency_injection_args2
-    for passing args/kwargs to the factory.
-    """
-    hash_key: tuple
-    dependency_injection_args2: tuple = field(hash=False, compare=False)
-    __name__: str = field(hash=False, compare=False)
+
+def signature_without_Inject(fn):
+    """Return fn's signature with Inject[…] parameters removed."""
+    sig = signature(fn)
+    return sig.replace(parameters=[
+        p for p in sig.parameters.values()
+        if injected_type(p.annotation) is None
+    ])
 
 @dataclass(frozen=True)
 class parametric_type:
@@ -37,20 +43,15 @@ class parametric_type:
             dependency_injection_args2=(args, kwargs),
         )
 
+@dataclass(frozen=True)
+class _ParametricInstance:
+    """A parameterized DI type, e.g. DB('users').
 
-def injected_type(annotation) -> type | None:
-    """If annotation is Inject[T], return T. Otherwise return None."""
-    if get_origin(annotation) is Inject:
-        args = get_args(annotation)
-        if len(args) == 1:
-            return args[0]
-    return None
+    Works with resolve_type: __name__ for lookup, dependency_injection_args2
+    for passing args/kwargs to the factory.
+    """
+    hash_key: tuple
+    dependency_injection_args2: tuple = field(hash=False, compare=False)
+    __name__: str = field(hash=False, compare=False)
 
 
-def signature_without_Inject(fn):
-    """Return fn's signature with Inject[…] parameters removed."""
-    sig = signature(fn)
-    return sig.replace(parameters=[
-        p for p in sig.parameters.values()
-        if injected_type(p.annotation) is None
-    ])
