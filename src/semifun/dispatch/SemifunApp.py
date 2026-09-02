@@ -1,9 +1,10 @@
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
 
 from semifun.caching.cached_property import cached_property
 
 from .AsyncDiCtx import AsyncDiCtx
+from .SyncDiCtx import SyncDiCtx
 from .load_lookup_tables import load_lookup_tables
 
 
@@ -32,6 +33,27 @@ class SemifunApp:
         di_ctx = AsyncDiCtx(app=self, parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype)
         try: yield di_ctx
         finally: await di_ctx.aclose()
+
+    # --- sync mirrors of async_dispatch / async_dispatch_all / open_async_di_ctx ---
+    # KEEP IN SYNC: drop async/await, AsyncDiCtx -> SyncDiCtx, aclose -> close.
+
+    def sync_dispatch(self, *, parent_ctx, seed_data, ftype, fname, args, kwargs):
+        with self.open_sync_di_ctx(parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype) as di_ctx:
+            fn, ctx2 = di_ctx.resolve_fn_ctx(ftype_suffix='', fname=fname)
+            return ctx2.fn_call(fn=fn, args=args, kwargs=kwargs)
+
+    def sync_dispatch_all(self, *, parent_ctx, seed_data, ftype, args, kwargs):
+        with self.open_sync_di_ctx(parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype) as di_ctx:
+            return {
+                fname: di_ctx.fn_call(fn=fn, args=args, kwargs=kwargs)
+                for fname, fn in self.fn_items(ftype=ftype)
+            }
+
+    @contextmanager
+    def open_sync_di_ctx(self, *, parent_ctx, seed_data, ftype):
+        di_ctx = SyncDiCtx(app=self, parent_ctx=parent_ctx, seed_data=seed_data, ftype=ftype)
+        try: yield di_ctx
+        finally: di_ctx.close()
 
     def lookup_fn(self, *, ftype, fname, strict):
         if res := self._lookup_tables.get(ftype, {}).get(fname, None): return res.fn
