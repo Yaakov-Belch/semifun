@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from inspect import isasyncgen, isawaitable, isgenerator
 from typing import TYPE_CHECKING
 
-from semifun.caching.cached_property import cached_property
 from semifun.caching.dictdefault import dictdefault
 
 from .tools import factory_field
@@ -33,8 +32,7 @@ class SyncDiCtx:
     _resolving: set = factory_field(set)  # cycle detection: types currently being resolved
 
 
-    @cached_property
-    def _cache(self): return {**self.seed_data, SyncDiCtx: self}
+    _cache: dict = factory_field(dict)
 
     def resolve_type(self, T):
         if T in self._resolving:
@@ -42,6 +40,10 @@ class SyncDiCtx:
         self._resolving.add(T)
         try:
             def compute_type():
+                if T is SyncDiCtx:
+                    return self
+                if T in self.seed_data:
+                    return self.seed_data[T]
                 args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
                 return self.fname_call_inject(fname=T.__name__, args=args, kwargs=kwargs)
             return dictdefault(self._cache, T, compute_type)

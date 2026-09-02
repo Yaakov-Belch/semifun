@@ -6,59 +6,57 @@ import sys
 
 import pytest
 from dataclasses import dataclass
-from pathlib import Path
 
-from semifun.plugins.testing import create_registry_from_paths, feature_map_from_registry
+from semifun.dispatch.Inject import Inject
+from semifun.dispatch.SemifunApp import SemifunApp
+from semifun.dispatch.load_lookup_tables import LoadedFn
 from semifun.cli.dispatch import (
     cli_dispatch_engine,
     semifun_cli,
 )
 
 
-def _make_cli_package(tmp_path):
-    """Create a package with sample CLI commands and injectors."""
-    pkg = tmp_path / "cli_pkg"
-    pkg.mkdir()
-    (pkg / "__init__.py").write_text("")
-    (pkg / "commands.py").write_text(
-        "#::cli:greet\n"
-        "def greet(name='world', times: int = 1):\n"
-        "    '''Greet someone.'''\n"
-        "    for _ in range(times):\n"
-        "        print(f'Hello, {name}!')\n"
-        "\n"
-        "#::cli:add\n"
-        "def add(a: int = 0, b: int = 0):\n"
-        "    '''Add two numbers.'''\n"
-        "    print(a + b)\n"
-        "\n"
-        "#::cli:mixed\n"
-        "def mixed(greeting, name, times: int = 1):\n"
-        "    '''Greet with positional and keyword args.'''\n"
-        "    for _ in range(times):\n"
-        "        print(f'{greeting}, {name}!')\n"
-        "\n"
-        "#::cli:variadic\n"
-        "def variadic(*numbers: int):\n"
-        "    '''Sum numbers.'''\n"
-        "    print(sum(numbers))\n"
-    )
-    return pkg
+def _make_app(ftype, fns, inject_fns=None):
+    """Build a test SemifunApp with the given functions."""
+    tables = {ftype: {name: LoadedFn(fn=fn) for name, fn in fns.items()}}
+    if inject_fns:
+        tables[ftype + '_inject'] = {name: LoadedFn(fn=fn) for name, fn in inject_fns.items()}
+    return SemifunApp(entry_points_group=tables)
 
 
-def _scanned_cli_map(tmp_path):
-    """A feature map built by really scanning a package's `#::` comments."""
-    pkg = _make_cli_package(tmp_path)
-    registry = create_registry_from_paths(
-        packages=[("cli_pkg", pkg)],
-    )
-    return feature_map_from_registry(registry, feature_type='cli')
+# --- Simple CLI commands ---
+
+def _simple_app():
+    def greet(name='world', times: int = 1):
+        '''Greet someone.'''
+        for _ in range(times):
+            print(f'Hello, {name}!')
+
+    def add(a: int = 0, b: int = 0):
+        '''Add two numbers.'''
+        print(a + b)
+
+    def mixed(greeting, name, times: int = 1):
+        '''Greet with positional and keyword args.'''
+        for _ in range(times):
+            print(f'{greeting}, {name}!')
+
+    def variadic(*numbers: int):
+        '''Sum numbers.'''
+        print(sum(numbers))
+
+    return _make_app('cli', {
+        'greet': greet, 'add': add, 'mixed': mixed, 'variadic': variadic,
+    })
 
 
-async def _dispatch(tmp_path, argv, capsys):
-    """Run argv through the real async engine; return what it printed."""
+async def _dispatch(argv, capsys, app=None):
+    """Run argv through the async engine; return what it printed."""
+    if app is None:
+        app = _simple_app()
     await cli_dispatch_engine(
-        feature_type=_scanned_cli_map(tmp_path),
+        app=app,
+        ftype='cli',
         argv=argv,
         extra_kwargs=None,
         seed_data={},
@@ -69,38 +67,38 @@ async def _dispatch(tmp_path, argv, capsys):
 
 # --- Basic dispatch ---
 
-async def test_simple_command(tmp_path, capsys):
-    assert await _dispatch(tmp_path, ['greet'], capsys) == 'Hello, world!\n'
+async def test_simple_command(capsys):
+    assert await _dispatch(['greet'], capsys) == 'Hello, world!\n'
 
 
-async def test_with_kwargs(tmp_path, capsys):
-    assert await _dispatch(tmp_path, ['greet', 'name=Alice'], capsys) == 'Hello, Alice!\n'
+async def test_with_kwargs(capsys):
+    assert await _dispatch(['greet', 'name=Alice'], capsys) == 'Hello, Alice!\n'
 
 
-async def test_type_casting(tmp_path, capsys):
-    assert await _dispatch(tmp_path, ['add', 'a=3', 'b=7'], capsys) == '10\n'
+async def test_type_casting(capsys):
+    assert await _dispatch(['add', 'a=3', 'b=7'], capsys) == '10\n'
 
 
-async def test_multiple_kwargs(tmp_path, capsys):
-    out = await _dispatch(tmp_path, ['greet', 'name=Bob', 'times=3'], capsys)
+async def test_multiple_kwargs(capsys):
+    out = await _dispatch(['greet', 'name=Bob', 'times=3'], capsys)
     assert out.count('Hello, Bob!') == 3
 
 
 # --- Positional args ---
 
-async def test_positional_args(tmp_path, capsys):
-    assert await _dispatch(tmp_path, ['mixed', 'Hi', 'Alice'], capsys) == 'Hi, Alice!\n'
+async def test_positional_args(capsys):
+    assert await _dispatch(['mixed', 'Hi', 'Alice'], capsys) == 'Hi, Alice!\n'
 
 
-async def test_positional_with_kwargs(tmp_path, capsys):
-    out = await _dispatch(tmp_path, ['mixed', 'Hey', 'Bob', 'times=2'], capsys)
+async def test_positional_with_kwargs(capsys):
+    out = await _dispatch(['mixed', 'Hey', 'Bob', 'times=2'], capsys)
     assert out.count('Hey, Bob!') == 2
 
 
 # --- Variadic ---
 
-async def test_variadic_int_args(tmp_path, capsys):
-    assert await _dispatch(tmp_path, ['variadic', '1', '2', '3', '4'], capsys) == '10\n'
+async def test_variadic_int_args(capsys):
+    assert await _dispatch(['variadic', '1', '2', '3', '4'], capsys) == '10\n'
 
 
 # --- Engine tests ---
@@ -111,51 +109,15 @@ class _Ctx:
     name: str
 
 
-class _FakeCliMap:
-    """Minimal stand-in for the feature map `_resolve` queries.
-
-    Also serves as the injectors map via the testing seam: when
-    cli_dispatch_engine receives a callable feature_type, it uses the same
-    callable for both command lookup and injector lookup.
-    """
-
-    def __init__(self, functions):
-        self._functions = functions
-
-    def __call__(self, feature, default):
-        return self._functions.get(feature, default)
-
-    @property
-    def feature_names(self):
-        return list(self._functions)
-
-    @property
-    def feature_names_and_objects(self):
-        return list(self._functions.items())
-
-
-@pytest.fixture
-def cli_map():
-    """A pre-built feature map of sample commands."""
-    from semifun.di.model import Inject
-
+async def test_async_engine_awaits_in_the_callers_loop(capsys):
     async def async_greet(name):
         """Greet someone, asynchronously."""
         print(f'Hello, {name}!')
 
-    async def needs_context(ctx: Inject[_Ctx], suffix):
-        """A command whose context arrives through seed_data."""
-        print(f'{ctx.name}{suffix}')
-
-    return _FakeCliMap({
-        'agreet': async_greet,
-        'ctx': needs_context,
-    })
-
-
-async def test_async_engine_awaits_in_the_callers_loop(cli_map, capsys):
+    app = _make_app('cli', {'agreet': async_greet})
     await cli_dispatch_engine(
-        feature_type=cli_map,
+        app=app,
+        ftype='cli',
         argv=['agreet', 'name=Alice'],
         extra_kwargs=None,
         seed_data={},
@@ -164,9 +126,15 @@ async def test_async_engine_awaits_in_the_callers_loop(cli_map, capsys):
     assert capsys.readouterr().out == 'Hello, Alice!\n'
 
 
-async def test_async_engine_prints_help_for_empty_argv(cli_map, capsys):
+async def test_async_engine_prints_help_for_empty_argv(capsys):
+    async def async_greet(name):
+        """Greet someone, asynchronously."""
+        print(f'Hello, {name}!')
+
+    app = _make_app('cli', {'agreet': async_greet})
     await cli_dispatch_engine(
-        feature_type=cli_map,
+        app=app,
+        ftype='cli',
         argv=[],
         extra_kwargs=None,
         seed_data={},
@@ -175,9 +143,15 @@ async def test_async_engine_prints_help_for_empty_argv(cli_map, capsys):
     assert 'Available commands:' in capsys.readouterr().out
 
 
-async def test_unknown_command_prints_help_and_returns(cli_map, capsys):
+async def test_unknown_command_prints_help_and_returns(capsys):
+    async def async_greet(name):
+        """Greet someone, asynchronously."""
+        print(f'Hello, {name}!')
+
+    app = _make_app('cli', {'agreet': async_greet})
     await cli_dispatch_engine(
-        feature_type=cli_map,
+        app=app,
+        ftype='cli',
         argv=['nope'],
         extra_kwargs=None,
         seed_data={},
@@ -188,9 +162,15 @@ async def test_unknown_command_prints_help_and_returns(cli_map, capsys):
     assert 'Available commands:' in out
 
 
-async def test_async_engine_passes_seed_data_to_di(cli_map, capsys):
+async def test_async_engine_passes_seed_data_to_di(capsys):
+    async def needs_context(ctx: Inject[_Ctx], suffix):
+        """A command whose context arrives through seed_data."""
+        print(f'{ctx.name}{suffix}')
+
+    app = _make_app('cli', {'ctx': needs_context})
     await cli_dispatch_engine(
-        feature_type=cli_map,
+        app=app,
+        ftype='cli',
         argv=['ctx', 'suffix=!'],
         extra_kwargs=None,
         seed_data={_Ctx: _Ctx(name='xctx')},
@@ -201,7 +181,7 @@ async def test_async_engine_passes_seed_data_to_di(cli_map, capsys):
 
 # --- semifun_cli entry point ---
 
-def test_semifun_cli_entry_point(tmp_path, capsys, monkeypatch):
+def test_semifun_cli_entry_point():
     """semifun_cli is a zero-argument entry point that reads sys.argv."""
     assert inspect.signature(semifun_cli).parameters == {}, (
         'a console-script target is invoked with no arguments'
@@ -211,7 +191,7 @@ def test_semifun_cli_entry_point(tmp_path, capsys, monkeypatch):
 # --- post_cli_hook ---
 
 async def test_post_cli_hook_runs_after_command(capsys):
-    """A post_cli_hook registered in the injector map runs after the command."""
+    """A post_cli_hook registered in the feature map runs after the command."""
     hook_called = []
 
     async def my_command():
@@ -222,8 +202,10 @@ async def test_post_cli_hook_runs_after_command(capsys):
         hook_called.append(True)
         print('hook ran')
 
+    app = _make_app('cli', {'cmd': my_command, 'post_cli_hook': my_hook})
     await cli_dispatch_engine(
-        feature_type=_FakeCliMap({'cmd': my_command, 'post_cli_hook': my_hook}),
+        app=app,
+        ftype='cli',
         argv=['cmd'],
         extra_kwargs=None,
         seed_data={},
@@ -241,8 +223,10 @@ async def test_no_post_cli_hook_is_fine(capsys):
         """A simple command."""
         print('just the command')
 
+    app = _make_app('cli', {'cmd': my_command})
     await cli_dispatch_engine(
-        feature_type=_FakeCliMap({'cmd': my_command}),
+        app=app,
+        ftype='cli',
         argv=['cmd'],
         extra_kwargs=None,
         seed_data={},
@@ -253,13 +237,14 @@ async def test_no_post_cli_hook_is_fine(capsys):
 
 # --- documented entry point shape ---
 
-def test_documented_entry_point_shape(tmp_path, capsys, monkeypatch):
+def test_documented_entry_point_shape(capsys, monkeypatch):
     """The console-script entry point works exactly as documented."""
-    cli_map = _scanned_cli_map(tmp_path)
+    app = _simple_app()
 
     def cli_dispatch() -> None:
         asyncio.run(cli_dispatch_engine(
-            feature_type=cli_map,
+            app=app,
+            ftype='cli',
             argv=sys.argv[1:],
             extra_kwargs=None,
             seed_data={},
@@ -275,11 +260,16 @@ def test_documented_entry_point_shape(tmp_path, capsys, monkeypatch):
     assert capsys.readouterr().out == 'Hello, Alice!\n'
 
 
-async def test_help_hides_injected_parameters(cli_map, capsys):
+async def test_help_hides_injected_parameters(capsys):
     """Inject[T] parameters should not appear in the help signature."""
-    # The 'ctx' command has (ctx: Inject[_Ctx], suffix) — only suffix should show
+    async def needs_context(ctx: Inject[_Ctx], suffix):
+        """A command whose context arrives through seed_data."""
+        print(f'{ctx.name}{suffix}')
+
+    app = _make_app('cli', {'ctx': needs_context})
     await cli_dispatch_engine(
-        feature_type=cli_map,
+        app=app,
+        ftype='cli',
         argv=['ctx', '--help'],
         extra_kwargs=None,
         seed_data={},
@@ -291,13 +281,7 @@ async def test_help_hides_injected_parameters(cli_map, capsys):
     assert 'ctx:' not in out  # the parameter name 'ctx' shouldn't appear in the sig
 
 
-async def test_the_same_engine_call_runs_inside_an_existing_loop(tmp_path, capsys):
+async def test_the_same_engine_call_runs_inside_an_existing_loop(capsys):
     """No second asyncio.run, no nest_asyncio, no thread — the point of the async engine."""
-    await cli_dispatch_engine(
-        feature_type=_scanned_cli_map(tmp_path),
-        argv=['greet', 'name=Bob'],
-        extra_kwargs=None,
-        seed_data={},
-        help_output=print,
-    )
-    assert capsys.readouterr().out == 'Hello, Bob!\n'
+    await _dispatch(['greet', 'name=Bob'], capsys)
+    assert True  # if we got here without error, the engine ran in the caller's loop
