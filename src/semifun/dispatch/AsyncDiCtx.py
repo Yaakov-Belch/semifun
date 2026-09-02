@@ -35,15 +35,21 @@ class AsyncDiCtx:
     _cache: dict = factory_field(dict)
 
     async def resolve_type(self, T):
+        if T is AsyncDiCtx:
+            return self
+        if T in self.seed_data:
+            return self.seed_data[T]
+        # If the factory lives in a parent context, delegate so the result
+        # is cached there (shared across child contexts, not recomputed).
+        fn_ctx = self.resolve_fn_ctx(ftype_suffix='_inject', fname=T.__name__)
+        _fn, owner_ctx = fn_ctx
+        if owner_ctx is not self:
+            return await owner_ctx.resolve_type(T)
         if T in self._resolving:
             raise RecursionError(f"Circular dependency: #::{self.ftype}_inject:{T.__name__} is already being resolved")
         self._resolving.add(T)
         try:
             async def compute_type():
-                if T is AsyncDiCtx:
-                    return self
-                if T in self.seed_data:
-                    return self.seed_data[T]
                 args, kwargs = getattr(T, 'dependency_injection_args2', ((), {}))
                 return await self.fname_call_inject(fname=T.__name__, args=args, kwargs=kwargs)
             return await dictdefault.a(self._cache, T, compute_type)
