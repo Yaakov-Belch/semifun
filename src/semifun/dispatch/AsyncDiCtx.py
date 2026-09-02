@@ -59,9 +59,7 @@ class AsyncDiCtx:
 
     async def fn_call(self, *, fn, args, kwargs):
         """Call fn with passthrough args/kwargs, resolving Inject[T] params via DI."""
-        inject_kwargs = {}
-        for name, T in self.app.inject_params(fn):
-            inject_kwargs[name] = await self.resolve_type(T)
+        inject_kwargs = {name: await self.resolve_type(T) for name, T in self.app.inject_params(fn)}
         result = fn(*args, **kwargs, **inject_kwargs)
         if isgenerator(result):
             value = next(result)
