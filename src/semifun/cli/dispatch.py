@@ -49,12 +49,11 @@ async def cli_dispatch_engine(
         help_output: callable for printing help text (e.g. `print`).
 
     """
-    fn_items = app.fn_items(ftype=ftype)
 
     # --- Help handling ---
 
     if not argv or argv[0] == '--help':
-        _print_help(fn_items=fn_items, help_output=help_output)
+        _print_help(app=app, ftype=ftype, help_output=help_output)
         return
 
     command_name = argv[0]
@@ -64,7 +63,7 @@ async def cli_dispatch_engine(
 
     if fn is None:
         help_output(f"Unknown command: {command_name}\n")
-        _print_help(fn_items=fn_items, help_output=help_output)
+        _print_help(app=app, ftype=ftype, help_output=help_output)
         return
 
     if command_argv == ['--help']:
@@ -84,8 +83,9 @@ async def cli_dispatch_engine(
         if post_cli_hook:
             await ctx.fn_call(fn=post_cli_hook, args=(), kwargs={})
 
-def _print_help(*, fn_items, help_output: callable):
+def _print_help(*, app, ftype, help_output: callable):
     """Print help for all discovered CLI commands."""
+    fn_items = app.fn_items(ftype=ftype)
     if not fn_items:
         help_output("No commands available.")
         return
