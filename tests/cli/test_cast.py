@@ -1,8 +1,14 @@
-"""Tests for cast_args — signature-aware type casting."""
+"""Tests for CommandCall.cast_basic_types — signature-aware type casting."""
 
 import pytest
 
-from semifun.cli.cast import cast_args
+from semifun.cli.CommandCall import CommandCall
+
+
+def cast_args(fn, args, kwargs):
+    """Backward-compatible helper: cast via CommandCall."""
+    cc = CommandCall(args=tuple(args), kwargs=kwargs).with_fn(fn).cast_basic_types()
+    return cc.args, dict(cc.kwargs)
 
 
 # --- Basic type casting ---

@@ -12,8 +12,7 @@ import textwrap
 from semifun.dispatch.Inject import signature_without_Inject
 from semifun.dispatch.SemifunApp import SemifunApp, app as _default_app
 
-from .argv import split_argv
-from .cast import cast_args
+from .CommandCall import CommandCall
 
 def semifun_cli():
     asyncio.run(cli_dispatch_engine(
@@ -56,29 +55,29 @@ async def cli_dispatch_engine(
         _print_help(app=app, ftype=ftype, help_output=help_output)
         return
 
-    command_name = argv[0]
-    command_argv = argv[1:]
+    cmd_call = CommandCall.from_argv(argv)
 
-    fn = app.lookup_fn(ftype=ftype, fname=command_name, strict=False)
+    fn = app.lookup_fn(ftype=ftype, fname=cmd_call.cmd, strict=False)
 
     if fn is None:
-        help_output(f"Unknown command: {command_name}\n")
+        help_output(f"Unknown command: {cmd_call.cmd}\n")
         _print_help(app=app, ftype=ftype, help_output=help_output)
         return
 
-    if command_argv == ['--help']:
-        _print_command_help(name=command_name, fn=fn, help_output=help_output)
+    if cmd_call.args == ('--help',):
+        _print_command_help(name=cmd_call.cmd, fn=fn, help_output=help_output)
         return
 
     # --- Command execution ---
 
-    str_args, str_kwargs = split_argv(command_argv)
-    if extra_kwargs:
-        str_kwargs.update(extra_kwargs)
-    cast_positional, cast_kwargs = cast_args(fn, str_args, str_kwargs)
+    cmd_call = (cmd_call
+                .split_kv_args()
+                .add_kwargs(extra_kwargs or {})
+                .with_fn(fn)
+                .cast_basic_types())
 
     async with app.open_async_scope(parent_scope=parent_scope, seed_data=seed_data, ftype=ftype) as scope:
-        await scope.fn_call(fn=fn, args=cast_positional, kwargs=cast_kwargs)
+        await scope.fn_call(fn=cmd_call.fn, args=cmd_call.args, kwargs=cmd_call.kwargs)
 
 def _print_help(*, app, ftype, help_output: callable):
     """Print help for all discovered CLI commands."""
