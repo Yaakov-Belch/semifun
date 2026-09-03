@@ -17,13 +17,12 @@ from typing import Any
 class CommandCall:
     """A command invocation being progressively resolved.
 
-    Fields are meaningful at every stage — they start as None/empty
-    and get filled in as the call is parsed and resolved.
+    All fields are required. Use .from_argv() for the common case.
     """
-    cmd: str | None = None
-    fn: Any = None
-    args: tuple[Any, ...] = ()
-    kwargs: dict[str, Any] = field(default_factory=dict)
+    cmd: str | None
+    fn: Any
+    args: tuple[Any, ...]
+    kwargs: dict[str, Any]
 
     @classmethod
     def from_argv(cls, argv: list[str]) -> 'CommandCall':
@@ -33,8 +32,8 @@ class CommandCall:
         No '=' splitting — call .split_kv_args() for that.
         """
         if not argv:
-            return cls()
-        return cls(cmd=argv[0], args=tuple(argv[1:]))
+            return cls(cmd=None, fn=None, args=(), kwargs={})
+        return cls(cmd=argv[0], fn=None, args=tuple(argv[1:]), kwargs={})
 
     def split_kv_args(self) -> 'CommandCall':
         """Separate key=value tokens from positional args into kwargs.

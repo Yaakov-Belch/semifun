@@ -7,7 +7,7 @@ from semifun.cli.CommandCall import CommandCall
 
 def cast_args(fn, args, kwargs):
     """Backward-compatible helper: cast via CommandCall."""
-    cc = CommandCall(args=tuple(args), kwargs=kwargs).with_fn(fn).cast_basic_types()
+    cc = CommandCall(cmd=None, fn=fn, args=tuple(args), kwargs=kwargs).cast_basic_types()
     return cc.args, dict(cc.kwargs)
 
 

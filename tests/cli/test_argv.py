@@ -5,7 +5,7 @@ from semifun.cli.CommandCall import CommandCall
 
 def _split(tokens):
     """Split tokens into (args, kwargs) via CommandCall."""
-    cc = CommandCall(args=tuple(tokens)).split_kv_args()
+    cc = CommandCall(cmd=None, fn=None, args=tuple(tokens), kwargs={}).split_kv_args()
     return list(cc.args), dict(cc.kwargs)
 
 
@@ -65,10 +65,10 @@ def test_from_argv_empty():
 
 
 def test_add_kwargs():
-    cc = CommandCall(args=('a',), kwargs={'x': '1'}).add_kwargs({'y': '2'})
+    cc = CommandCall(cmd=None, fn=None, args=('a',), kwargs={'x': '1'}).add_kwargs({'y': '2'})
     assert cc.kwargs == {'x': '1', 'y': '2'}
 
 
 def test_add_kwargs_empty():
-    cc = CommandCall(args=('a',), kwargs={'x': '1'})
+    cc = CommandCall(cmd=None, fn=None, args=('a',), kwargs={'x': '1'})
     assert cc.add_kwargs({}) is cc
