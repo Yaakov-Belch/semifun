@@ -6,9 +6,11 @@ Handles the full pipeline:
         .with_fn(fn)                — attach function for signature-based casting
         .add_kwargs(extra)          — merge additional kwargs
         .cast_basic_types()         — cast strings to int/float/bool per fn's signature
+        .help_shown(app, ftype, reply) — show help and return True if applicable
 """
 
 import inspect
+import textwrap
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -20,7 +22,7 @@ class CommandCall:
     All fields are required. Use .from_argv() for the common case.
     """
     cmd: str | None
-    fn: Any
+    fn: callable | None
     args: tuple[Any, ...]
     kwargs: dict[str, Any]
 
@@ -60,6 +62,40 @@ class CommandCall:
         if not extra:
             return self
         return replace(self, kwargs={**self.kwargs, **extra})
+
+    def help_shown(self, *, app, ftype, reply) -> bool:
+        """Show help text and return True if this is a help request.
+
+        Help is shown when fn is not callable, or when cmd or args[0]
+        is '--help'.  When fn is callable, shows help for that one
+        function.  Otherwise lists all functions in the (app, ftype) scope,
+        prepending 'Unknown command: {cmd}' when cmd is truthy and not
+        '--help' itself.
+
+        Collects one string and calls reply exactly once.
+        """
+        if (callable(self.fn)
+                and self.cmd != '--help'
+                and not (self.args and self.args[0] == '--help')):
+            return False
+
+        if callable(self.fn):
+            text = _format_command_help(name=self.cmd, fn=self.fn)
+        else:
+            parts: list[str] = []
+            if self.cmd and self.cmd != '--help':
+                parts.append(f'Unknown command: {self.cmd}\n')
+            fn_items = app.fn_items(ftype=ftype)
+            if not fn_items:
+                parts.append('No commands available.')
+            else:
+                parts.append('Available commands:\n')
+                for name, fn in fn_items:
+                    parts.append(_format_command_help(name=name, fn=fn))
+            text = '\n'.join(parts)
+
+        reply(text)
+        return True
 
     def cast_basic_types(self) -> 'CommandCall':
         """Cast string args/kwargs to int/float/bool per fn's signature.
@@ -112,6 +148,15 @@ class CommandCall:
             cast_kw[key] = _cast_value(annotation, value)
 
         return replace(self, args=tuple(cast_positional), kwargs=cast_kw)
+
+
+def _format_command_help(*, name: str, fn) -> str:
+    """Format help text for a single command."""
+    from semifun.dispatch.Inject import signature_without_Inject
+    sig = signature_without_Inject(fn)
+    doc = inspect.cleandoc(fn.__doc__ or '(no description)')
+    indented = textwrap.indent(doc, '    ')
+    return f'{name}{sig}\n{indented}\n'
 
 
 def _cast_value(annotation: Any, value: str) -> Any:

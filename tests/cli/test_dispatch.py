@@ -61,7 +61,7 @@ async def _dispatch(argv, capsys, app=None):
         extra_kwargs=None,
         seed_data={},
         parent_scope=None,
-        help_output=print,
+        reply=print,
     )
     return capsys.readouterr().out
 
@@ -123,7 +123,7 @@ async def test_async_engine_awaits_in_the_callers_loop(capsys):
         extra_kwargs=None,
         seed_data={},
         parent_scope=None,
-        help_output=print,
+        reply=print,
     )
     assert capsys.readouterr().out == 'Hello, Alice!\n'
 
@@ -141,7 +141,7 @@ async def test_async_engine_prints_help_for_empty_argv(capsys):
         extra_kwargs=None,
         seed_data={},
         parent_scope=None,
-        help_output=print,
+        reply=print,
     )
     assert 'Available commands:' in capsys.readouterr().out
 
@@ -159,7 +159,7 @@ async def test_unknown_command_prints_help_and_returns(capsys):
         extra_kwargs=None,
         seed_data={},
         parent_scope=None,
-        help_output=print,
+        reply=print,
     )
     out = capsys.readouterr().out
     assert 'Unknown command: nope' in out
@@ -179,7 +179,7 @@ async def test_async_engine_passes_seed_data_to_di(capsys):
         extra_kwargs=None,
         seed_data={_Ctx: _Ctx(name='xctx')},
         parent_scope=None,
-        help_output=print,
+        reply=print,
     )
     assert capsys.readouterr().out == 'xctx!\n'
 
@@ -207,7 +207,7 @@ def test_documented_entry_point_shape(capsys, monkeypatch):
             extra_kwargs=None,
             seed_data={},
             parent_scope=None,
-            help_output=print,
+            reply=print,
         ))
 
     monkeypatch.setattr(sys, 'argv', ['my-app', 'greet', 'name=Alice'])
@@ -233,7 +233,7 @@ async def test_help_hides_injected_parameters(capsys):
         extra_kwargs=None,
         seed_data={},
         parent_scope=None,
-        help_output=print,
+        reply=print,
     )
     out = capsys.readouterr().out
     assert 'suffix' in out
